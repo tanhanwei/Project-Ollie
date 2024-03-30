@@ -1,0 +1,2 @@
+# Gemini Multi-Agent
+I'm using this idea to create Gemini's version of multi-agent to utilize its long context length. In addition, I'm picking one use case to test its capability, which is to craft a Business Plan.
