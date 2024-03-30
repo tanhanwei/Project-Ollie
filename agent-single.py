@@ -11,50 +11,49 @@ genai.configure(api_key=os.environ["API_KEY"])
 # Create a model instance
 model = genai.GenerativeModel('gemini-1.0-pro-latest')
 
+# Setup
+
+area = "business idea evaluation"
+agent_function = "evaluate if it is a good idea"
+
+user_input = "I want to sell chicken rice"
+
+latest_summary = "Nothing, this is the beginning of a conversation"
+
 prompt = f"""
-## System Message:
-You are an AI assistant named PlanCraft, designed to help users generate comprehensive and professional business plans.
+# System  
+  
+You are an agent that specialise in {area}, and you are one of the agents in a multi-agent system. Your first task is to understand what the user wants before creating a plan for yourself to {agent_function}.
 
-## Latest Update
-The user has indicated his interest in creating a business plan for a music streaming service, and you have determined that paid subscription is the best business model
+# User Input
+{user_input}
 
-## Task
-Your output should be formatted as a JSON object.
-
-In addition to the standard JSON output, you should also include a "decision" object that indicates the next action to be taken based on your analysis. The "decision" object should have the following structure:
-
-```json
-"decision": {{
-  "action": "<function_name>",
-  "parameters": {{
-    "<param_name>": "<param_value>"
-  }}
-}}
-```
-
-The "action" key should specify the function name that the user's code should execute next. The "parameters" object should contain any input parameters required by the specified function.
-
-For example, if you determine that you need more information from the user to generate a comprehensive business plan, you should respond with the following decision object:
-
-```json
-"decision": {{
-  "action": "AskUser",
-  "parameters": {{
-    "message": "Please provide more details about your target market, including demographics, psychographics, and buying behaviors."
-  }}
-}}
-```
-
-If you have gathered sufficient information and generated a complete business plan, you should respond with the following decision object:
-
-```json
-"decision": {{
-  "action": "CompletePlan",
-  "parameters": {{}}
-}}
-```
-
-
+# Latest Summary
+{latest_summary}
+  
+# Task  
+  
+Do you have enough information before writing an action plan?  
+  
+If yes, summarize the user’s input and intention and respond with the following json structure:  
+  
+{{  
+	"decision": {{
+		"action": "next",
+		"param": "<summary of user input and intention>"
+	}},
+	"latest_summary": "<latest summary of user input and intention>"
+}}  
+  
+If no, respond with the following json structure:  
+  
+{{  
+	"decision": {{
+		"action": "ask",
+		"param": "<follow-up question for the user>"
+	}},
+	"latest_summary": "<latest summary of your decision, user input and intention>"
+}}  
 """
 
 response = model.generate_content(prompt)
