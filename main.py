@@ -67,8 +67,6 @@ while True:
         conversation_history += f"{agent_name}: {response}\n"
 
     # Check if all delegations have been completed
-# Check if all delegations have been completed
-# Check if all delegations have been completed
     prompt = f"""
 Given the following conversation history:
 
@@ -83,7 +81,7 @@ Please respond with a well-formatted JSON object using the following structure:
   "additional_info_needed": "Additional information or tasks needed if not completed"
 }}
 
-Ensure that the JSON object is complete and properly formatted, with all required fields present and no extra text, formatting characters, or code blocks outside the JSON structure.
+Ensure that the JSON object is complete and properly formatted, without any extra text, formatting characters, or code blocks.
 
 JSON Response:
 """

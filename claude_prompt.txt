@@ -1,0 +1,327 @@
+I'm currently building a multi-agent system using LLM from Google which only has 1 API call that generates a response from a prompt. The key concept here is to use master agent that takes in tasks from the user and delegates tasks to other agents that specialises in relevant area. The master agent is also using the same Google LLM API call to generate a response in JSON format to delegate the tasks. At the moment, I'm working on the master agent and the math agent. The following are the  code details.
+
+Project Folder structure:
+```
+project/
+    |-- agents/
+    |   |-- __init__.py
+    |   |-- agent.py
+    |   |-- math_agent.py
+    |   |-- language_agent.py
+    |-- prompts/
+    |   |-- master_agent_prompt.txt
+    |   |-- math_agent_prompt.txt
+    |   |-- language_agent_prompt.txt
+    |-- main.py
+```
+
+agent.py
+```python
+class Agent:
+    def __init__(self, name, expertise, function_table, prompt):
+        self.name = name
+        self.expertise = expertise
+        self.function_table = function_table
+        self.prompt = prompt
+
+    def execute_function(self, function_name, *args, **kwargs):
+        if function_name in self.function_table:
+            return self.function_table[function_name](*args, **kwargs)
+        else:
+            raise ValueError(f"Function '{function_name}' not found in the function table")
+
+    def generate_response(self, task):
+        # Process the task and generate a response
+        # This method can be overridden by specialized agents
+        return "I'm not sure how to handle this task."
+```
+
+language_agent.py
+```python
+from .agent import Agent
+
+class LanguageAgent(Agent):
+    def generate_response(self, task):
+        # Generate a response for language-related tasks
+        if "translate" in task.lower():
+            # Extract the text and target language from the task and translate
+            parts = task.split("translate", 1)[1].strip().split("to")
+            text = parts[0].strip().strip("'\"")
+            target_lang = parts[1].strip()
+            translated_text = self.execute_function("translate", text, target_lang)
+            return f"The translation of '{text}' to {target_lang} is: {translated_text}"
+        else:
+            return "I can assist with language translation. Please provide the text and target language."
+```
+
+math_agent.py
+```
+
+language_agent_prompt.txt
+```
+[System Description]
+You are a language agent responsible for translating text from one language to another.
+
+[Input Format]
+The task will be provided in the following format:
+Task: <task_description>
+
+[Output Format]
+Your response should be a plain text string containing the translated text or an appropriate message.
+
+[Examples]
+Task: Translate 'Hello' to Spanish
+Response: The translation of 'Hello' to Spanish is: Hola
+
+Task: Translate 'Good morning' to French
+Response: The translation of 'Good morning' to French is: Bonjour
+
+Task: Translate the document to German
+Response: I can assist with language translation. Please provide the text and target language.
+```
+
+master_agent_prompt.txt
+```
+[System Description]
+You are a master agent responsible for coordinating and delegating tasks to specialized agents based on the user's input. Your role is to analyze the input, determine which agent(s) are relevant for the task, and provide a JSON response containing only the delegation instructions.
+
+[Input Format]
+The user input will be provided in the following format:
+User: <user_input>
+
+[Output Format]
+Your response should be a JSON object in the following format:
+{
+  "delegations": [
+    {
+      "agent": "<agent_name>",
+      "task": "<task_description>"
+    },
+    ...
+  ]
+}
+
+- "delegations" is an array of delegation objects.
+- Each delegation object contains the "agent" (name of the specialized agent) and the "task" (description of the task to be performed by the agent).
+- If no delegation is required, the "delegations" array should be empty.
+- Do not include any other text, conversation, or explanations in your response, only the JSON object.
+
+[Available Agents]
+- Math Agent: Responsible for mathematical calculations and expressions.
+- Language Agent: Responsible for language translation and related tasks.
+
+[Example 1]
+User: Can you translate "Hello" to Spanish?
+
+{"delegations":[{"agent":"Language Agent","task":"Translate 'Hello' to Spanish"}]}
+
+[Example 2]
+User: What is the result of 2 + 3?
+
+{"delegations":[{"agent":"Math Agent","task":"Calculate 2 + 3"}]}
+
+[Example 3]
+User: Please send an email to John.
+
+{"delegations":[]}
+
+[Current Conversation]
+<conversation_history>
+
+[User Input]
+<user_input>
+
+[Instructions]
+Based on the current conversation history and the user's latest input, generate a JSON response containing only the delegation instructions for the relevant agent(s). Do not include any other text, conversation, or explanations in your response.
+```
+
+math_agent_prompt.txt
+```
+[System Description]
+You are a math agent responsible for performing mathematical calculations and evaluating expressions.
+
+[Input Format]
+The task will be provided in the following format:
+Task: <task_description>
+
+[Output Format]
+Your response should be a plain text string containing the result of the calculation or an appropriate message.
+
+[Examples]
+Task: Calculate 2 + 3
+Response: The result of 2 + 3 is: 5
+
+Task: Calculate the square root of 64
+Response: The result of the square root of 64 is: 8.0
+
+Task: Solve the equation x + 5 = 10
+Response: I can assist with mathematical calculations. Please provide a valid expression.
+```
+
+llm_api.py
+```python
+import os
+import json
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# Load the environment variables from the .env file
+load_dotenv()
+
+# Configure the API with your API key stored in an environment variable
+genai.configure(api_key=os.environ["API_KEY"])
+
+# Create a model instance
+model = genai.GenerativeModel('gemini-1.0-pro-latest')
+
+def call_google_llm_api(prompt):
+    try:
+        response = model.generate_content(prompt)
+        # Convert the raw text response to JSON format
+        json_response = json.dumps({"response": response.text})
+        return json_response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+```
+
+main.py
+```python
+import json
+from agents.math_agent import MathAgent
+from agents.language_agent import LanguageAgent
+from llm_api import call_google_llm_api
+
+# Load prompts from files
+with open("prompts/master_agent_prompt.txt", "r") as file:
+    master_agent_prompt = file.read()
+
+with open("prompts/math_agent_prompt.txt", "r") as file:
+    math_agent_prompt = file.read()
+
+with open("prompts/language_agent_prompt.txt", "r") as file:
+    language_agent_prompt = file.read()
+
+# Predefined function table and agent instances
+function_table = {
+    "calculate": lambda expression: eval(expression),
+    "translate": lambda text, target_lang: f"Translating '{text}' to {target_lang}"
+}
+
+math_agent = MathAgent("Math Agent", "Mathematics", function_table, math_agent_prompt)
+language_agent = LanguageAgent("Language Agent", "Language", function_table, language_agent_prompt)
+
+agent_registry = {
+    "Math Agent": math_agent,
+    "Language Agent": language_agent
+}
+
+# Conversation loop
+conversation_history = ""
+user_input = input("User: ")
+
+while True:
+    # Update the conversation history and user input in the master agent's prompt
+    prompt = master_agent_prompt.replace("<conversation_history>", conversation_history)
+    prompt = prompt.replace("<user_input>", user_input)
+
+    # Send the master agent prompt to the Google LLM API and get the response
+    master_agent_response = call_google_llm_api(prompt)
+
+    if master_agent_response is None:
+        print("An error occurred while communicating with the LLM API.")
+        break
+
+    print("Master Agent Response:", master_agent_response)
+
+    try:
+        # Parse the JSON response
+        response_dict = json.loads(master_agent_response)
+        response_text = response_dict["response"]
+        print("MASTER Response Text:", response_text)
+        
+        # Parse the response text as JSON
+        delegations_dict = json.loads(response_text)
+        delegations = delegations_dict["delegations"]
+    except (json.JSONDecodeError, KeyError) as e:
+        print("Error parsing response:", e)
+        break
+
+    # Execute the delegations
+    for delegation in delegations:
+        agent_name = delegation["agent"]
+        task = delegation["task"]
+        agent = agent_registry[agent_name]
+        response = agent.generate_response(task)
+        conversation_history += f"{agent_name}: {response}\n"
+
+    # Check if all delegations have been completed
+    prompt = f"""
+Given the following conversation history:
+
+{conversation_history}
+
+Determine if all the delegated tasks have been completed and provide a final response to the user. If the tasks are not yet completed, indicate what additional information or tasks are needed.
+
+Please respond with a well-formatted JSON object using the following structure:
+{{
+  "tasks_completed": true or false,
+  "final_response": "Final response to the user if tasks are completed",
+  "additional_info_needed": "Additional information or tasks needed if not completed"
+}}
+
+Ensure that the JSON object is complete and properly formatted, with all required fields present and no extra text, formatting characters, or code blocks outside the JSON structure.
+
+JSON Response:
+"""
+
+    master_agent_response = call_google_llm_api(prompt)
+
+    # To check if it can respond correctly
+    print(f"MASTER AGENT RESPONSE: {master_agent_response}")
+
+    if master_agent_response is None:
+        print("An error occurred while communicating with the LLM API.")
+        break
+
+    try:
+        # Parse the JSON response
+        response_dict = json.loads(master_agent_response)
+        response_text = response_dict["response"]
+        
+        # Remove any extra text, formatting characters, or code blocks
+        response_text = response_text.strip()
+        response_text = response_text.replace("\`\`\`json", "").replace("\`\`\`", "")
+        response_text = response_text.strip()
+
+        if response_text.startswith("{") and response_text.endswith("}"):
+            result_dict = json.loads(response_text)
+            tasks_completed = result_dict.get("tasks_completed", False)
+            final_response = result_dict.get("final_response", "")
+            additional_info_needed = result_dict.get("additional_info_needed", "")
+        else:
+            raise json.JSONDecodeError("Invalid JSON format", response_text, 0)
+
+        if tasks_completed:
+            conversation_history += f"Master Agent: {final_response}\n"
+            print(final_response)
+        else:
+            conversation_history += f"Master Agent: {additional_info_needed}\n"
+            print(additional_info_needed)
+    except (json.JSONDecodeError, KeyError) as e:
+        print("Error parsing response:", e)
+        conversation_history += "Master Agent: I apologize, but I couldn't generate a proper response. Can you please try rephrasing your request?\n"
+        print("I apologize, but I couldn't generate a proper response. Can you please try rephrasing your request?")
+
+    print(f"Convo History: {conversation_history}")
+
+    # Check if the user wants to end the conversation
+    if user_input.lower() in ["bye", "goodbye", "exit", "quit"]:
+        break
+
+    # Get the user's input for the next turn
+    user_input = input("User: ")
+
+# End the conversation
+print("Master Agent: Thank you for the conversation. Have a great day!")
+```
