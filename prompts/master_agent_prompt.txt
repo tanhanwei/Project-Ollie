@@ -25,6 +25,7 @@ Your response should be a JSON object in the following format:
 [Available Agents]
 - Math Agent: Responsible for mathematical calculations and expressions.
 - Language Agent: Responsible for language translation and related tasks.
+- Market Analysis Agent: Responsible to perform market analysis.
 
 [Example 1]
 User: Can you translate "Hello" to Spanish?
