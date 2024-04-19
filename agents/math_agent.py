@@ -60,7 +60,10 @@ class MathExpressionEvaluator:
             raise TypeError(f"Unsupported node type: {type(node)}")
 
 class MathAgent(Agent):
-    def __init__(self, name, expertise, function_table, prompt):
+    def __init__(self, name, expertise, function_table):
+        prompt_file = "prompts/math_agent_prompt.txt"
+        with open(prompt_file, "r") as file:
+            prompt = file.read()
         super().__init__(name, expertise, function_table, prompt)
         self.expression_evaluator = MathExpressionEvaluator()
 
@@ -84,6 +87,8 @@ class MathAgent(Agent):
                 return "I couldn't extract a valid mathematical expression from the task. Please rephrase it."
         else:
             return "I can assist with mathematical calculations. Please provide a valid expression."
+    def get_required_info(self):
+        return []
 
     def convert_to_expression(self, task):
         # Call the Google LLM API to convert the natural language task to a mathematical expression

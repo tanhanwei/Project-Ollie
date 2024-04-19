@@ -1,6 +1,12 @@
 from .agent import Agent
 
 class LanguageAgent(Agent):
+    def __init__(self, name, expertise, function_table):
+        prompt_file = "prompts/language_agent_prompt.txt"
+        with open(prompt_file, "r") as file:
+            prompt = file.read()
+        super().__init__(name, expertise, function_table, prompt)
+        
     def generate_response(self, task):
         # Generate a response for language-related tasks
         if "translate" in task.lower():

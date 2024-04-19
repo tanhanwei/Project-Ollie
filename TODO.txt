@@ -1,0 +1,10 @@
+All agent prompts are loaded inside main.py, I think they should be loaded individually inside their respective agent class.
+Likewise for master agent's prompt, it shouldn't be loaded in main.
+
+Last thing added:
+- manager agent class
+- master agent class
+Haven't modified main.py to use the manager agent class.
+
+Relevant chat:
+https://claude.ai/chat/abe2235b-bd76-4955-a000-027d1edf590f

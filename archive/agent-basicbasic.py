@@ -9,7 +9,11 @@ load_dotenv()
 genai.configure(api_key=os.environ["API_KEY"])
 
 # Create a model instance
-model = genai.GenerativeModel('gemini-1.0-pro-latest')
+model = genai.GenerativeModel('gemini-1.5-pro-latest')
+
+for m in genai.list_models():
+  if 'generateContent' in m.supported_generation_methods:
+    print(m.name)
 
 while True:
     # Input your message
