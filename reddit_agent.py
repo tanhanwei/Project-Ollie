@@ -1,8 +1,12 @@
 import os
 from dotenv import load_dotenv
 import praw
+import json
 import google.generativeai as genai
-from llm_api import call_google_llm_api
+from google.protobuf.struct_pb2 import Struct
+import google.ai.generativelanguage as glm
+from colors import print_blue, print_green, print_red, print_yellow
+import sys
 
 # Load the environment variables from the .env file
 load_dotenv()
@@ -25,99 +29,186 @@ reddit = praw.Reddit(
     username=username
 )
 
-def subreddit_search_with_comments(subreddit_name, sort='best', limit=3):
-    """ Search for the latest top posts from a specific subreddit and retrieve comments for each post. """
-    subreddit = reddit.subreddit(subreddit_name)
-    top_posts = subreddit.top(time_filter='day', limit=limit)
-    posts_comments = []
+# Create the output folder if it doesn't exist
+output_folder = "output/reddit_agent"
+os.makedirs(output_folder, exist_ok=True)
 
-    for post in top_posts:
-        comments = retrieve_comments(post.id, sort)
-        post_info = {
-            'title': post.title,
-            'url': post.url,
-            'id': post.id,
-            'comments': comments
-        }
-        posts_comments.append(post_info)
+# Global data store dictionary
+data_store = {}
 
-    return posts_comments
+def retrieve_posts(subreddits: list[str], mode: str = 'top', query: str = None, sort_by: str = 'relevance',
+                   time_filter: str = 'all', limit: int = 100):
+    """
+    Retrieve posts from specified subreddits based on the given mode ('top' or 'search'). If mode is 'search',
+    use the provided query and sort parameters. Store the results in a global data store.
 
-def retrieve_comments(post_id, sort='best', comment_limit=10):
-    """ Retrieve top-level comments from a specific post sorted by a given method. """
+    Args:
+        subreddits (list[str]): List of subreddit names from which to retrieve posts.
+        mode (str): Mode of operation ('top' or 'search'). Defaults to 'top'.
+        query (str): Keyword query for searching posts. Required if mode is 'search'.
+        sort_by (str): Sorting criterion ('relevance', 'hot', 'top', 'new', 'comments'). Applicable only for 'search'.
+        time_filter (str): Time filter for posts ('hour', 'day', 'week', 'month', 'year', 'all'). Defaults to 'all'.
+        limit (int): Maximum number of posts to retrieve.
+
+    Returns:
+        str: Result message indicating the number of posts and comments found and stored.
+    """
+    print_red(f"Accessing {subreddits} with mode: {mode}, query: {query}, sorting by: {sort_by} with limit: {limit}")
+    total_comments = 0
+    posts = []
+    for sub in subreddits:
+        subreddit = reddit.subreddit(sub)
+        try:
+            if mode == 'top':
+                found_posts = subreddit.top(time_filter=time_filter, limit=limit)
+            elif mode == 'search':
+                found_posts = subreddit.search(query, sort=sort_by, time_filter=time_filter, limit=limit)
+            else:
+                raise ValueError("Invalid mode specified. Use 'top' or 'search'.")
+
+            for post in found_posts:
+                comments = retrieve_comments(post.id)
+                total_comments += len(comments)
+                print(f"\rTotal comments retrieved so far: {total_comments}", end='', flush=True)
+                post_details = {
+                    'id': post.id,
+                    'title': post.title,
+                    'author': post.author.name if post.author else None,
+                    'score': post.score,
+                    'url': post.url,
+                    'comments': comments,
+                    'num_comments': post.num_comments
+                }
+                data_store[f'post_{post.id}'] = post_details
+                posts.append(post.id)
+        except Exception as e:
+            print(f"\nError accessing subreddit {sub}: {e}")
+
+    print()
+    data_store['post_ids'] = posts if posts else []
+
+    print_green(f"\nDATA STORE:\n {data_store}")
+    result = f"Found {len(posts)} relevant posts with a total of {total_comments} comments retrieved."
+    return result
+
+def retrieve_comments(post_id, sort='best', comment_limit=5):
+    """Retrieve top-level comments from a specific post sorted by a given method."""
     submission = reddit.submission(id=post_id)
     submission.comment_sort = sort
     submission.comments.replace_more(limit=0)
     comments = [(comment.body, comment.score) for comment in submission.comments.list()[:comment_limit]]
     return comments
 
-def print_posts_with_comments(posts_comments):
-    """ Print posts and their comments in a formatted manner. """
-    for post in posts_comments:
-        print(f"\nPost Title: {post['title']}")
-        print(f"URL: {post['url']}")
-        print(f"Post ID: {post['id']}")
-        print("Comments:")
-        for comment, score in post['comments']:
-            print(f" - {comment} [Score: {score}]")
-
-def summarize(posts_comments):
-    print(posts_comments)
-    # Create a model instance
-    model = genai.GenerativeModel('gemini-1.0-pro-latest')
-
-    # Format the posts and their comments into a readable string
-    formatted_posts = []
-    for post in posts_comments:
-        comments = '; '.join([f"{comment[0]} [Score: {comment[1]}]" for comment in post['comments']])
-        formatted_post = f"Title: {post['title']}, Comments: {comments}"
-        formatted_posts.append(formatted_post)
-    
-    prompt = f"""
-        Please summarize the following Reddit posts and comments:
-        {'; '.join(formatted_posts)}
+def analyze_posts(instruction: str):
     """
-    response = model.generate_content(prompt)
-    return response.text
-
-
-
-def search_and_summarize(subreddit_name: str):
-    """
-    Summarize retrieved comments for subreddit posts based on the specified subreddit name.
+    Analyze posts after relevant posts have been found. You can summarize, perform sentiment analysis,
+    or identify emerging topics.
 
     Args:
-        subreddit_name: Subreddit name
-    """
-    subreddit_posts_comments = subreddit_search_with_comments(subreddit_name, 'best', 5)
-    summary = summarize(subreddit_posts_comments)
-    return summary
+        instruction (str): Instructions for analysis, e.g., "Summarize these posts:", 
+                           "Perform sentiment analysis for these posts:", or "Identify emerging topics for these posts:"
 
+    Returns:
+        str: Summary or analysis results, or a message indicating that no posts are available.
+    """
+    print_red("Analysing posts...")
+    post_ids = data_store.get('post_ids', [])
+    posts = [data_store[f'post_{post_id}'] for post_id in post_ids]
+
+    if not posts:
+        return "No posts data available for analysis."
+
+    post_summaries = [f"Title: {post['title']}, Author: {post['author']}, Comments: {post['comments']}, Score: {post['score']}" 
+                      for post in posts]
+    summary_prompt = f"{instruction}\n\n{'; '.join(post_summaries)}"
+
+    print_green(f"SUMMARY PROMPT:\n\n {summary_prompt}")
+
+    model = genai.GenerativeModel('gemini-1.5-pro-latest')
+    response = model.generate_content(summary_prompt)
+    print_red(f"RESPONSE DEBUG:\n {response}")
+
+    data_store['post_summary'] = response.text
+
+    # Save the post summary to a JSON file
+    with open(f"{output_folder}/response.json", 'w') as file:
+        json.dump(response.text, file)
+
+    global task_completed
+    task_completed = True
+    return "Post summary generated."
+
+# Create a dictionary of functions
 functions = {
-    'search_and_summarize': search_and_summarize,
+    'retrieve_posts': retrieve_posts,
+    'analyze_posts': analyze_posts
 }
+
+# Initialize the Gemini model
+model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=functions.values())
+task_completed = False
+
+def execute_function_sequence(model, functions, prompt):
+    print(f"Executing function with the following prompt:\n\n {prompt}")
+    messages = [{'role': 'user', 'parts': [{'text': prompt}]}]
+    while not task_completed:
+        print_blue(f"Message History:\n\n {messages}")
+        response = model.generate_content(messages)
+        print_yellow(f"AGENT RESPONSE: \n\n {response}")
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, 'function_call'):
+                function_call = part.function_call
+                if function_call.args is None:
+                    print("Function call has no arguments.")
+                    continue
+                result = call_function(function_call, functions)
+                
+                s = Struct()
+                s.update({'result': result})
+                function_response = glm.Part(
+                    function_response=glm.FunctionResponse(name=function_call.name, response=s))
+                
+                messages.append({'role': 'model', 'parts': [part]})
+                messages.append({'role': 'user', 'parts': [function_response]})
+            else:
+                return getattr(part, 'text', 'No text available')
+    return messages
 
 def call_function(function_call, functions):
     function_name = function_call.name
-    function_args = function_call.args
+    if function_call.args is None:
+        print(f"No arguments passed to function {function_name}")
+        return "Error: No arguments provided"
+    function_args = {k: v for k, v in function_call.args.items()}
     return functions[function_name](**function_args)
 
-model = genai.GenerativeModel(model_name='gemini-1.0-pro',
-                              tools=functions.values())
+def generate_response(prompt):
+    prompt = f"""
+        Based on user input, search subreddits and analyze the result, limit posts to 10.
+
+        User: {prompt}
+    """
+    result = execute_function_sequence(model, functions, prompt)
+
+    # DEBUG
+    print(result)
+
+    return data_store['post_summary']
+
 # Example usage:
-# subreddit_posts_comments = subreddit_search_with_comments("Python", 'best', 2)
-# print_posts_with_comments(subreddit_posts_comments)
+# user_input = "Find out about emerging topic in the latest singularity subreddit."
+# prompt = f"""
+#     Based on user input, search subreddits and analyze the result, limit posts to 10.
 
-print("Reddit Agent: Hello, what would you like to find out from Reddit?")
-user_input = input("You: ")
+#     User: {user_input}
+# """
+# result = execute_function_sequence(model, functions, prompt)
 
-response = model.generate_content(user_input)
+# # TODO: Maybe can save the result (summary) elsewhere so that the agent manager can access later. All it needs to know is that post summary has been generated.
 
-part = response.candidates[0].content.parts[0]
+# print(result)
+# print(data_store['post_summary'])
 
-if part.function_call:
-    result = call_function(part.function_call, functions)
+# print("Job done!")
 
-print(result)
-
-# print(response)
+generate_response("Find out about emerging topic in the latest singularity subreddit.")
