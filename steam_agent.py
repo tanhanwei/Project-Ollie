@@ -162,7 +162,7 @@ def execute_function_sequence(model, functions, prompt):
     while not task_completed:
         print_blue(f"Message History:\n\n {messages}")
         response = model.generate_content(messages)
-        print_yellow(f"AGENT RESPONSE: \n\n {response}")
+        print_yellow(f"STEAM AGENT RESPONSE: \n\n {response}")
         for part in response.candidates[0].content.parts:
             if hasattr(part, 'function_call'):
                 function_call = part.function_call
@@ -203,4 +203,4 @@ def generate_response(prompt):
 
     return "Done with review analysis."
 
-generate_response("Tell me more about gta5")
+# generate_response("Tell me more about gta5")

@@ -154,7 +154,7 @@ def execute_function_sequence(model, functions, prompt):
     while not task_completed:
         print_blue(f"Message History:\n\n {messages}")
         response = model.generate_content(messages)
-        print_yellow(f"AGENT RESPONSE: \n\n {response}")
+        print_yellow(f"REDDIT AGENT RESPONSE: \n\n {response}")
         for part in response.candidates[0].content.parts:
             if hasattr(part, 'function_call'):
                 function_call = part.function_call
@@ -193,7 +193,8 @@ def generate_response(prompt):
     # DEBUG
     print(result)
 
-    return data_store['post_summary']
+    # return data_store['post_summary']
+    return "Done with analysis."
 
 # Example usage:
 # user_input = "Find out about emerging topic in the latest singularity subreddit."
@@ -211,4 +212,4 @@ def generate_response(prompt):
 
 # print("Job done!")
 
-generate_response("Find out about emerging topic in the latest singularity subreddit.")
+# generate_response("Find out about emerging topic in the latest singularity subreddit.")
