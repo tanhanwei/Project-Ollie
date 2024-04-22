@@ -27,12 +27,30 @@ class RedditAgent(AgentBase):
         self.data_store = {}
         self.functions = {
             'retrieve_posts': self.retrieve_posts,
-            'analyze_posts': self.analyze_posts
+            'analyze_posts': self.analyze_posts,
+            'retrieve_analysis': self.retrieve_analysis
         }
         self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
+        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
         
     def retrieve_posts(self, subreddits: list[str], mode: str = 'top', query: str = None, sort_by: str = 'relevance',
                        time_filter: str = 'all', limit: int = 100):
+        """
+            Retrieve posts from specified subreddits based on the given mode ('top' or 'search'). If mode is 'search',
+            use the provided query and sort parameters. Store the results in a global data store.
+
+            Args:
+                subreddits (list[str]): List of subreddit names from which to retrieve posts.
+                mode (str): Mode of operation ('top' or 'search'). Defaults to 'top'.
+                query (str): Keyword query for searching posts. Required if mode is 'search'.
+                sort_by (str): Sorting criterion ('relevance', 'hot', 'top', 'new', 'comments'). Applicable only for 'search'.
+                time_filter (str): Time filter for posts ('hour', 'day', 'week', 'month', 'year', 'all'). Defaults to 'all'.
+                limit (int): Maximum number of posts to retrieve.
+
+            Returns:
+                str: Result message indicating the number of posts and comments found and stored.
+        """
+        print(f"REDDIT AGENT: Retrieving posts.")
         total_comments = 0
         posts = []
         for sub in subreddits:
@@ -77,6 +95,17 @@ class RedditAgent(AgentBase):
         return comments
 
     def analyze_posts(self, instruction: str):
+        """
+        Analyze posts after relevant posts have been found. You can summarize, perform sentiment analysis,
+        or identify emerging topics.
+
+        Args:
+            instruction (str): Instructions for analysis, e.g., "Summarize these posts:", 
+                            "Perform sentiment analysis for these posts:", or "Identify emerging topics for these posts:"
+
+        Returns:
+            str: Summary or analysis results, or a message indicating that no posts are available.
+        """
         post_ids = self.data_store.get('post_ids', [])
         posts = [self.data_store[f'post_{post_id}'] for post_id in post_ids]
 
@@ -87,16 +116,66 @@ class RedditAgent(AgentBase):
                           for post in posts]
         summary_prompt = f"{instruction}\n\n{'; '.join(post_summaries)}"
 
-        model = genai.GenerativeModel('gemini-1.5-pro-latest')
-        response = model.generate_content(summary_prompt)
+        print("REDDIT AGENT: Analyzing posts...")
+        response = self.pro_generate_analysis(summary_prompt, output_folder)
+        return response
+        # model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        # response = model.generate_content(summary_prompt)
+        # print(response)
         
-        self.data_store['post_summary'] = response.text
+        # try:
+        #     response = model.generate_content(
+        #         summary_prompt,
+        #         safety_settings={
+        #             'HATE': 'BLOCK_NONE',
+        #             'HARASSMENT': 'BLOCK_NONE',
+        #             'SEXUAL': 'BLOCK_NONE',
+        #             'DANGEROUS': 'BLOCK_NONE'
+        #         }
+        #     )
 
-        with open(f"{output_folder}/response.json", 'w') as file:
-            json.dump(response.text, file)
+        #     if hasattr(response, 'prompt_feedback') and response.prompt_feedback.block_reason:
+        #         print("Prompt was blocked due to the following reason:", response.prompt_feedback.block_reason)
+        #         return "Unable to generate analysis due to content restrictions."
 
+        #     if response.text:
+        #         analysis_text = response.text
+        #         self.data_store['post_summary'] = analysis_text
+        #         with open(f"{output_folder}/response.json", 'w') as file:
+        #             json.dump(analysis_text, file)
+
+        #         print(f"REDDIT AGENT: Completed analysis and saved the result to {output_folder}/response.json")
+        #         self.task_completed = True
+        #         return "Analysis generated."
+        #     else:
+        #         print("No useful response was generated. Review the input or model configuration.")
+        #         return "An error occurred during analysis."
+
+        # except Exception as e:
+        #     self.task_completed = True
+        #     print("An unexpected error occurred:", str(e))
+        #     print("REDDIT AGENT: Task completed with error.")
+        #     return "Failed to generate analysis due to an error."
+        # finally:
+        #     # Ensures that task_completed is always set to True regardless of how the function exits
+        #     self.task_completed = True
+    
+    def retrieve_analysis(self):
+        """Retrieve analysis generated earlier on.
+        """
+        print("Retrieving Analysis...")
+        with open(f"{output_folder}/response.json", 'r') as file:
+            # Read the file content
+            json_text = file.read()
+            
+            # Parse the JSON data
+            analysis = json.loads(json_text)
+
+        print(f"Got the analysis:\n\n{analysis}")
         self.task_completed = True
-        return "Post summary generated."
+
+        response = f"Analysis retrieved, here is the analysis:\n{analysis}"
+        return response
 
     def generate_response(self, prompt):
         prompt = f"""
@@ -104,6 +183,6 @@ class RedditAgent(AgentBase):
 
             User: {prompt}
         """
-        result = self.execute_function_sequence(self.model, self.functions, prompt)
+        result = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
         return "Done with analysis."

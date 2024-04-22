@@ -8,3 +8,8 @@ Haven't modified main.py to use the manager agent class.
 
 Relevant chat:
 https://claude.ai/chat/abe2235b-bd76-4955-a000-027d1edf590f
+
+
+!!!!
+Handle 403 reddit derver denial
+handle wrong game title for steam agent

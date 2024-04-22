@@ -69,4 +69,4 @@ def generate_response(prompt):
 # Example usage:
 # user_input = "..."
 # response = generate_response(user_input)
-# print(response)
+# print(response) 

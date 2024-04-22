@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 import google.generativeai as genai
 from google.protobuf.struct_pb2 import Struct
 import google.ai.generativelanguage as glm
+import json
 
 class AgentBase(ABC):
     def __init__(self):
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro')
+        # self.model = genai.GenerativeModel(model_name='gemini-1.0-pro')
         self.task_completed = False
         self.messages = []
 
@@ -13,36 +14,53 @@ class AgentBase(ABC):
     def generate_response(self, prompt: str) -> str:
         pass
 
-    def execute_function_sequence(self, model, functions, prompt):
-        print("EXECUTING FUNCTION!")
- 
-        self.messages.append({'role': 'user', 'parts': [f'{prompt}']})
-        while not self.task_completed:
-            print(f"Generating response using the following prompt:\n\n{self.messages}")
-            response = model.generate_content(self.messages)
-            print(f"RESPONSE FROM MODEL:\n\n {response}")
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, 'function_call'):
-                    function_call = part.function_call
-                    if function_call.args is None:
-                        continue
-                    result = self.call_function(function_call, functions)
-                    s = Struct()
-                    s.update({'result': result})
-                    function_response = glm.Part(
-                        function_response=glm.FunctionResponse(name=function_call.name, response=s))
-                    self.messages.append({'role': 'model', 'parts': [part]})
-                    self.messages.append({'role': 'user', 'parts': [function_response]})
-                else:
-                    print("NO FUNCTION CALL. APPENDING TEXT:")
-                    self.messages.append({'role': 'model', 'parts': [{'text': getattr(part, 'text', 'No text available')}]})
-                    return self.messages
-        return self.messages
+    def execute_function_sequence(self, model, functions, prompt, chat):
+        self.task_completed = False
 
-    def call_function(self, function_call, functions):
-        function_name = function_call.name
-        if function_call.args is None:
-            return "Error: No arguments provided"
-        function_args = {k: v for k, v in function_call.args.items()}
-        return functions[function_name](**function_args)
+        while not self.task_completed:
+            print("Generating response...")
+            response = chat.send_message(prompt)
+            print(f"TASK COMPLETED: {self.task_completed}")
+        return response.text
     
+    def pro_generate_analysis(self, summary_prompt, output_folder):
+        model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        response = model.generate_content(summary_prompt)
+        print(response)
+        
+        try:
+            response = model.generate_content(
+                summary_prompt,
+                safety_settings={
+                    'HATE': 'BLOCK_NONE',
+                    'HARASSMENT': 'BLOCK_NONE',
+                    'SEXUAL': 'BLOCK_NONE',
+                    'DANGEROUS': 'BLOCK_NONE'
+                }
+            )
+
+            if hasattr(response, 'prompt_feedback') and response.prompt_feedback.block_reason:
+                print("Prompt was blocked due to the following reason:", response.prompt_feedback.block_reason)
+                return "Unable to generate analysis due to content restrictions."
+
+            if response.text:
+                analysis_text = response.text
+                self.data_store['post_summary'] = analysis_text
+                with open(f"{output_folder}/response.json", 'w') as file:
+                    json.dump(analysis_text, file)
+
+                print(f"REDDIT AGENT: Completed analysis and saved the result to {output_folder}/response.json")
+                self.task_completed = True
+                return f"Analysis generated, and it is available at {output_folder}/response.json"
+            else:
+                print("No useful response was generated. Review the input or model configuration.")
+                return "An error occurred during analysis."
+
+        except Exception as e:
+            self.task_completed = True
+            print("An unexpected error occurred:", str(e))
+            print("REDDIT AGENT: Task completed with error.")
+            return "Failed to generate analysis due to an error."
+        finally:
+            # Ensures that task_completed is always set to True regardless of how the function exits
+            self.task_completed = True

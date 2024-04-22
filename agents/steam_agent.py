@@ -19,6 +19,7 @@ class SteamAgent(AgentBase):
             'analyze_reviews': self.analyze_reviews
         }
         self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
+        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
 
     def get_steam_appid(self, game_name):
         url = "https://api.steampowered.com/ISteamApps/GetAppList/v2/"
@@ -108,6 +109,6 @@ class SteamAgent(AgentBase):
 
             User: {prompt}
         """
-        result = self.execute_function_sequence(self.model, self.functions, prompt)
+        result = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
         return "Done with review analysis."
