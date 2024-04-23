@@ -45,7 +45,6 @@ class AgentBase(ABC):
 
             if response.text:
                 analysis_text = response.text
-                self.data_store['post_summary'] = analysis_text
                 with open(f"{output_folder}/response.json", 'w') as file:
                     json.dump(analysis_text, file)
 

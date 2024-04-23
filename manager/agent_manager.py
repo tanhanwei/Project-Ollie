@@ -24,11 +24,13 @@ class AgentManager(AgentBase):
                     self.agents.append(attr())
         self.data_store = {}
         self.delegated_agents = []
+        # IMPORTANT: Function table must be defined for GEMINI API to call them!
         self.functions = {
             'delegate_to_steam_agent': self.delegate_to_steam_agent,
             'delegate_to_reddit_agent': self.delegate_to_reddit_agent,
             'summarize_agents_responses': self.summarize_agents_responses,
-            'respond_to_user':self.respond_to_user
+            'respond_to_user':self.respond_to_user,
+            'chat_with_data':self.chat_with_data
         }
         self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
         self.user_input = ""
@@ -115,7 +117,8 @@ class AgentManager(AgentBase):
             prompt = f"{instruction}\n\nUser Input: {self.user_input}\n\nAgent Responses:\n"
             for i, response in enumerate(agent_responses, start=1):
                 prompt += f"Agent {i}: {response}\n"
-                response = self.pro_generate_analysis(prompt, output_folder)
+                
+            response = self.pro_generate_analysis(prompt, output_folder)
             # pro_model = genai.GenerativeModel('gemini-1.5-pro-latest')
             # print("MANAGER AGENT: Summarizing everything...")
             # print(f"MANAGER AGENT: Prompt for summary:\n\n{prompt}")
@@ -140,6 +143,16 @@ class AgentManager(AgentBase):
         self.task_completed = True
         return message
     
+    def chat_with_data(self, message: str):
+        """
+        Generate response based on the data from response.json created earlier. This function can only be called after summarize_agents_responses has been called. User get to ask questions or chat with data.
+
+        Args:
+            message: user's chat input
+        Returns:
+            str: response back to the user.
+        """
+    
     def generate_response(self, user_prompt):
         # Reset task completed status whenever it is generating a response
         self.task_completed = False
@@ -158,15 +171,8 @@ class AgentManager(AgentBase):
         response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
         print("MANAGER: EXECUTED FUNCTIONS")
-  
 
-        # response = self.extract_reply_to_user(messages)
 
         return response
 
-        # if response.candidates and response.candidates[0].content.parts:
-        #     return response.candidates[0].content.parts[0].text
-        # else:
-        #     print("No response generated.")
-        #     return "No response generated."
     
