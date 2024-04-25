@@ -28,11 +28,15 @@ class AgentManager(AgentBase):
         self.functions = {
             'delegate_to_steam_agent': self.delegate_to_steam_agent,
             'delegate_to_reddit_agent': self.delegate_to_reddit_agent,
+            'delegate_to_web_search_agent': self.delegate_to_web_search_agent,
             'summarize_agents_responses': self.summarize_agents_responses,
             'respond_to_user':self.respond_to_user,
             'chat_with_data':self.chat_with_data
         }
+        # Initialize chat model with function call ability
         self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
+        # Initialize basic data chat model, no functions
+        self.data_chat_model = genai.GenerativeModel(model_name='gemini-1.0-pro')
         self.user_input = ""
         self.first_conversation = True
         self.chat = self.model.start_chat(enable_automatic_function_calling=True)
@@ -82,6 +86,25 @@ class AgentManager(AgentBase):
             return f"Reddit Agent: {response}"
         else:
             return "Reddit agent not found."
+        
+    def delegate_to_web_search_agent(self, query: str):
+        """
+        Delegate the task to the web search agent.
+        
+        Args:
+            query: instruction for web search agent to analyze a topic.
+        Returns:
+            str: the status of the analysis.
+        """
+        print("MANAGER AGENT: DELEGATING TO WEB SEARCH AGENT")
+        web_search_agent = next((agent for agent in self.agents if agent.__class__.__name__.lower() == "websearchagent"), None)
+        if web_search_agent:
+            response = web_search_agent.generate_response(query)
+            self.data_store["reddit_response"] = response
+            self.delegated_agents.append("web_search_agent")
+            return f"Web Search Agent: {response}"
+        else:
+            return "Web Search agent not found."        
 
     def summarize_agents_responses(self):
         """
@@ -117,7 +140,7 @@ class AgentManager(AgentBase):
             prompt = f"{instruction}\n\nUser Input: {self.user_input}\n\nAgent Responses:\n"
             for i, response in enumerate(agent_responses, start=1):
                 prompt += f"Agent {i}: {response}\n"
-                
+
             response = self.pro_generate_analysis(prompt, output_folder)
             # pro_model = genai.GenerativeModel('gemini-1.5-pro-latest')
             # print("MANAGER AGENT: Summarizing everything...")
@@ -152,6 +175,17 @@ class AgentManager(AgentBase):
         Returns:
             str: response back to the user.
         """
+        agent_responses = []
+        for agent in self.delegated_agents:
+            response_file_path = f"output/{agent}/response.json"
+            if os.path.exists(response_file_path):
+                with open(response_file_path, 'r') as file:
+                    response_data = json.load(file)
+                    agent_responses.append(response_data)
+        prompt = f"Context:\n{agent_responses}\n\nUser:\n{message}"
+        response = self.data_chat_model.generate_content(prompt)
+
+        return response.text
     
     def generate_response(self, user_prompt):
         # Reset task completed status whenever it is generating a response
@@ -159,7 +193,7 @@ class AgentManager(AgentBase):
         self.user_input = user_prompt
 
         if self.first_conversation:
-            prompt = f"""You are an agent designed specifically to help users to do research on certain topics. Currently, you have access to reddit agents to research on subreddits and steam agent to research on game reviews.
+            prompt = f"""You are an agent designed specifically to help users to do research on certain topics. Currently, you have access to reddit agents to research on subreddits, steam agent to research on game reviews, and a web search agent who can search the web and analyze webpages.
                 
                 Based on the user input, respond by using the respond_to_user function unless you decide to delegate your task to agents (steam or reddit). You can delegate to both or one of them or respond to the user directly.
 
