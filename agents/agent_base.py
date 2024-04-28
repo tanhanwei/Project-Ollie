@@ -1,15 +1,31 @@
 from abc import ABC, abstractmethod
+from dotenv import load_dotenv
 import google.generativeai as genai
 import json
 import logging
 
+import os
+load_dotenv()
+genai.configure(api_key=os.environ["API_KEY"])
+
 class AgentBase(ABC):
     def __init__(self):
-        self.messages = []
+        self.model = None
+        self.chat = None
+        self.set_model() 
 
     @abstractmethod
     def generate_response(self, prompt: str) -> str:
         pass
+
+    @abstractmethod
+    def get_functions(self):
+        pass
+
+    def set_model(self):
+        functions = self.get_functions()
+        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=functions.values())
+        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
 
     def execute_function_sequence(self, model, functions, prompt, chat):
         logging.debug(f"Generating response using the following prompt:\n{prompt}")

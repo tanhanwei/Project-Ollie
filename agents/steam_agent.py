@@ -14,21 +14,14 @@ os.makedirs(output_folder, exist_ok=True)
 class SteamAgent(AgentBase):
     description = "An agent that can retrieve game reviews by specifying game name and analyse them."
     def __init__(self):
+        self.functions = self.get_functions() 
         super().__init__()
-        # self.delegate_docstring = """
-        # Delegate the task to the steam agent.
-        
-        # Args:
-        #     query: instruction for steam agent to analyze a game. Must include a game's name.
-        # Returns:
-        #     str: the status of the analysis.
-        # """
-        self.functions = {
+    
+    def get_functions(self):
+        return {
             'retrieve_reviews': self.retrieve_reviews,
             'analyze_reviews': self.analyze_reviews
         }
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
-        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
 
     def get_steam_appid(self, game_name):
         url = "https://api.steampowered.com/ISteamApps/GetAppList/v2/"

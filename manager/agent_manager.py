@@ -18,12 +18,23 @@ DELEGATE_PROMPT_DEBUG = False
 
 class AgentManager(AgentBase):
     def __init__(self):
+        self.functions = self.get_functions()  # Define self.functions before calling super().__init__()
         super().__init__()
         self.agent_classes = discover_agents()
         self.agents = {}
         self.data_store = {}
         self.delegated_agents = []
         self.first_conversation = True
+
+    def get_functions(self):
+        return {
+            'delegate_task': self.delegate_task,
+            'summarize_agents_responses': self.summarize_agents_responses,
+            'get_active_agents':self.get_active_agents,
+            'retrieve_data_from_agents': self.retrieve_data_from_agents,
+            'get_all_agents': self.get_all_agents
+            #'chat_with_data': self.chat_with_data
+        }
 
     def set_agents(self, agent_keys):
         """
@@ -36,38 +47,6 @@ class AgentManager(AgentBase):
                 print(f"Initialized {agent_key} agent.")
             else:
                 print(f"No agent found for key: {agent_key}")
-        # self.set_delegate_docstring() #update the docstring based on chosen agents
-        self.set_model() # setup the model after function table is set up
-    
-    # def set_delegate_docstring(self):
-    #     agent_list = ', '.join(self.agents.keys())
-    #     self.delegate_docstring = f"""
-    #     Delegate tasks to relevant agent by giving instructions.
-    #     Args:
-    #         agent: name of agent. You can choose from: {agent_list}
-    #         instruction: the instruction for the agent.
-    #     Returns:
-    #         str: status of the delegation.
-    #     """
-    #     self.delegate_task = self.update_docstring(self.delegate_task, self.delegate_docstring)
-
-    # def update_docstring(self, func, new_docstring):
-    #     def wrapper(*args, **kwargs):
-    #         return func(*args, **kwargs)
-    #     wrapper.__doc__ = new_docstring
-    #     return wrapper
-    
-    def set_model(self):
-        self.functions = {
-            'delegate_task': self.delegate_task,
-            'summarize_agents_responses': self.summarize_agents_responses,
-            'get_active_agents':self.get_active_agents,
-            'retrieve_data_from_agents': self.retrieve_data_from_agents,
-            'get_all_agents': self.get_all_agents
-            #'chat_with_data': self.chat_with_data
-        }
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
-        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
     
     def get_all_agents(self):
         """

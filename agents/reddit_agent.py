@@ -24,24 +24,17 @@ os.makedirs(output_folder, exist_ok=True)
 class RedditAgent(AgentBase):
     description = "An agent that can retrieve reddit posts and analyse them. It can be used to research any topics including games, technology, science, etc"
     def __init__(self):
+        self.functions = self.get_functions() 
         super().__init__()
-        # self.delegate_docstring = """
-        # Delegate the task to the reddit agent.
-        
-        # Args:
-        #     query: instruction for reddit agent to analyze a topic.
-        # Returns:
-        #     str: the status of the analysis.
-        # """
         self.data_store = {}
-        self.functions = {
-            'retrieve_posts': self.retrieve_posts,
-            'analyze_posts': self.analyze_posts,
-            'retrieve_analysis': self.retrieve_analysis
+
+    def get_functions(self):
+        return {
+        'retrieve_posts': self.retrieve_posts,
+        'analyze_posts': self.analyze_posts,
+        'retrieve_analysis': self.retrieve_analysis
         }
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
-        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
-        
+    
     def retrieve_posts(self, subreddits: list[str], mode: str = 'top', query: str = None, sort_by: str = 'relevance',
                        time_filter: str = 'all', limit: int = 100):
         """
