@@ -3,6 +3,9 @@ import google.generativeai as genai
 from google.protobuf.struct_pb2 import Struct
 import google.ai.generativelanguage as glm
 import json
+from google.generativeai.types import content_types
+from collections.abc import Iterable
+import logging
 
 class AgentBase(ABC):
     def __init__(self):
@@ -14,13 +17,21 @@ class AgentBase(ABC):
     def generate_response(self, prompt: str) -> str:
         pass
 
+    def tool_config_from_mode(self, mode: str, fns: Iterable[str] = ()):
+        """Create a tool config with the specified function calling mode."""
+        return content_types.to_tool_config(
+            {"function_calling_config": {"mode": mode, "allowed_function_names": fns}}
+        )
+
     def execute_function_sequence(self, model, functions, prompt, chat):
         self.task_completed = False
 
-        while not self.task_completed:
-            print("Generating response...")
-            response = chat.send_message(prompt)
-            print(f"TASK COMPLETED: {self.task_completed}")
+        # while not self.task_completed:
+        logging.debug(f"Generating response using the following prompt:\n{prompt}")
+        response = chat.send_message(prompt)
+        logging.debug(f"CHAT HISTORY:\n{chat.history}")
+        logging.debug(f"DEBUG: response: \n\n{response}")
+        logging.debug(f"TASK COMPLETED: {self.task_completed}")
         return response.text
     
     def pro_generate_analysis(self, summary_prompt, output_folder):
@@ -48,7 +59,7 @@ class AgentBase(ABC):
                 with open(f"{output_folder}/response.json", 'w') as file:
                     json.dump(analysis_text, file)
 
-                print(f"REDDIT AGENT: Completed analysis and saved the result to {output_folder}/response.json")
+                print(f"Completed analysis and saved the result to {output_folder}/response.json")
                 self.task_completed = True
                 return f"Analysis generated, and it is available at {output_folder}/response.json"
             else:
