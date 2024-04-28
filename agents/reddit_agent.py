@@ -25,14 +25,14 @@ class RedditAgent(AgentBase):
     description = "An agent that can retrieve reddit posts and analyse them. It can be used to research any topics including games, technology, science, etc"
     def __init__(self):
         super().__init__()
-        self.delegate_docstring = """
-        Delegate the task to the reddit agent.
+        # self.delegate_docstring = """
+        # Delegate the task to the reddit agent.
         
-        Args:
-            query: instruction for reddit agent to analyze a topic.
-        Returns:
-            str: the status of the analysis.
-        """
+        # Args:
+        #     query: instruction for reddit agent to analyze a topic.
+        # Returns:
+        #     str: the status of the analysis.
+        # """
         self.data_store = {}
         self.functions = {
             'retrieve_posts': self.retrieve_posts,
@@ -153,6 +153,6 @@ class RedditAgent(AgentBase):
 
             User: {prompt}
         """
-        result = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+        response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
-        return "Done with analysis."
+        return response

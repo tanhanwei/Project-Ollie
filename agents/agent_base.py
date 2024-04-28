@@ -1,37 +1,21 @@
 from abc import ABC, abstractmethod
 import google.generativeai as genai
-from google.protobuf.struct_pb2 import Struct
-import google.ai.generativelanguage as glm
 import json
-from google.generativeai.types import content_types
-from collections.abc import Iterable
 import logging
 
 class AgentBase(ABC):
     def __init__(self):
-        # self.model = genai.GenerativeModel(model_name='gemini-1.0-pro')
-        self.task_completed = False
         self.messages = []
 
     @abstractmethod
     def generate_response(self, prompt: str) -> str:
         pass
 
-    def tool_config_from_mode(self, mode: str, fns: Iterable[str] = ()):
-        """Create a tool config with the specified function calling mode."""
-        return content_types.to_tool_config(
-            {"function_calling_config": {"mode": mode, "allowed_function_names": fns}}
-        )
-
     def execute_function_sequence(self, model, functions, prompt, chat):
-        self.task_completed = False
-
-        # while not self.task_completed:
         logging.debug(f"Generating response using the following prompt:\n{prompt}")
         response = chat.send_message(prompt)
         logging.debug(f"CHAT HISTORY:\n{chat.history}")
         logging.debug(f"DEBUG: response: \n\n{response}")
-        logging.debug(f"TASK COMPLETED: {self.task_completed}")
         return response.text
     
     def pro_generate_analysis(self, summary_prompt, output_folder):
@@ -60,17 +44,12 @@ class AgentBase(ABC):
                     json.dump(analysis_text, file)
 
                 print(f"Completed analysis and saved the result to {output_folder}/response.json")
-                self.task_completed = True
                 return f"Analysis generated, and it is available at {output_folder}/response.json"
             else:
                 print("No useful response was generated. Review the input or model configuration.")
                 return "An error occurred during analysis."
 
         except Exception as e:
-            self.task_completed = True
             print("An unexpected error occurred:", str(e))
             print("REDDIT AGENT: Task completed with error.")
             return "Failed to generate analysis due to an error."
-        finally:
-            # Ensures that task_completed is always set to True regardless of how the function exits
-            self.task_completed = True

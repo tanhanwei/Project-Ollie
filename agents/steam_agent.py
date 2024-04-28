@@ -15,14 +15,14 @@ class SteamAgent(AgentBase):
     description = "An agent that can retrieve game reviews by specifying game name and analyse them."
     def __init__(self):
         super().__init__()
-        self.delegate_docstring = """
-        Delegate the task to the steam agent.
+        # self.delegate_docstring = """
+        # Delegate the task to the steam agent.
         
-        Args:
-            query: instruction for steam agent to analyze a game. Must include a game's name.
-        Returns:
-            str: the status of the analysis.
-        """
+        # Args:
+        #     query: instruction for steam agent to analyze a game. Must include a game's name.
+        # Returns:
+        #     str: the status of the analysis.
+        # """
         self.functions = {
             'retrieve_reviews': self.retrieve_reviews,
             'analyze_reviews': self.analyze_reviews
@@ -136,6 +136,6 @@ class SteamAgent(AgentBase):
 
             User: {prompt}
         """
-        result = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+        response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
-        return "Done with review analysis."
+        return response
