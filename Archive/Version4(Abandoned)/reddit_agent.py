@@ -1,40 +1,40 @@
 import os
-from dotenv import load_dotenv
 import praw
 import json
 import google.generativeai as genai
 from agents.agent_base import AgentBase
-
-load_dotenv()
-genai.configure(api_key=os.environ["API_KEY"])
-client_id = os.getenv("REDDIT_CLIENT_ID")
-client_secret = os.getenv("REDDIT_CLIENT_SECRET")
-username = os.getenv("REDDIT_USERNAME")
-password = os.getenv("REDDIT_PASSWORD")
-reddit = praw.Reddit(
-    client_id=client_id,
-    client_secret=client_secret,
-    password=password,
-    user_agent=f'script by /u/{username}',
-    username=username
-)
-output_folder = "output/reddit_agent"
-os.makedirs(output_folder, exist_ok=True)
+from config import config
 
 class RedditAgent(AgentBase):
-    description = "An agent that can retrieve reddit posts and analyse them. It can be used to research any topics including games, technology, science, etc"
-    def __init__(self):
-        self.functions = self.get_functions() 
-        super().__init__()
+    def __init__(self, model, output_path):
+        super().__init__(model, output_path)
+        os.makedirs(output_path, exist_ok=True)
         self.data_store = {}
-
-    def get_functions(self):
-        return {
-        'retrieve_posts': self.retrieve_posts,
-        'analyze_posts': self.analyze_posts,
-        'retrieve_analysis': self.retrieve_analysis
+        self.functions = {
+            'retrieve_posts': self.retrieve_posts,
+            'analyze_posts': self.analyze_posts,
+            'retrieve_analysis': self.retrieve_analysis
         }
-    
+        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
+        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
+        
+        # Initialize praw.Reddit instance
+        self.reddit = praw.Reddit(
+            client_id=config.REDDIT_CLIENT_ID,
+            client_secret=config.REDDIT_CLIENT_SECRET,
+            password=config.REDDIT_PASSWORD,
+            user_agent=f'script by /u/{config.REDDIT_USERNAME}',
+            username=config.REDDIT_USERNAME
+        )
+
+    @property
+    def name(self):
+        return "RedditAgent"
+
+    @property
+    def description(self):
+        return "The Reddit Agent retrieves and analyzes posts and comments from specified subreddits."
+        
     def retrieve_posts(self, subreddits: list[str], mode: str = 'top', query: str = None, sort_by: str = 'relevance',
                        time_filter: str = 'all', limit: int = 100):
         """
@@ -56,7 +56,7 @@ class RedditAgent(AgentBase):
         total_comments = 0
         posts = []
         for sub in subreddits:
-            subreddit = reddit.subreddit(sub)
+            subreddit = self.reddit.subreddit(sub)
             try:
                 if mode == 'top':
                     found_posts = subreddit.top(time_filter=time_filter, limit=limit)
@@ -90,7 +90,7 @@ class RedditAgent(AgentBase):
         return result
 
     def retrieve_comments(self, post_id, sort='best', comment_limit=5):
-        submission = reddit.submission(id=post_id)
+        submission = self.reddit.submission(id=post_id)
         submission.comment_sort = sort
         submission.comments.replace_more(limit=0)
         comments = [(comment.body, comment.score) for comment in submission.comments.list()[:comment_limit]]
@@ -119,15 +119,54 @@ class RedditAgent(AgentBase):
         summary_prompt = f"{instruction}\n\n{'; '.join(post_summaries)}"
 
         print("REDDIT AGENT: Analyzing posts...")
-        response = self.pro_generate_analysis(summary_prompt, output_folder)
-        return f"Review analysis has been completed and is saved in '{output_folder}'"
+        response = self.pro_generate_analysis(summary_prompt, self.output_path)
+        return response
+        # model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        # response = model.generate_content(summary_prompt)
+        # print(response)
+        
+        # try:
+        #     response = model.generate_content(
+        #         summary_prompt,
+        #         safety_settings={
+        #             'HATE': 'BLOCK_NONE',
+        #             'HARASSMENT': 'BLOCK_NONE',
+        #             'SEXUAL': 'BLOCK_NONE',
+        #             'DANGEROUS': 'BLOCK_NONE'
+        #         }
+        #     )
 
+        #     if hasattr(response, 'prompt_feedback') and response.prompt_feedback.block_reason:
+        #         print("Prompt was blocked due to the following reason:", response.prompt_feedback.block_reason)
+        #         return "Unable to generate analysis due to content restrictions."
+
+        #     if response.text:
+        #         analysis_text = response.text
+        #         self.data_store['post_summary'] = analysis_text
+        #         with open(f"{output_folder}/response.json", 'w') as file:
+        #             json.dump(analysis_text, file)
+
+        #         print(f"REDDIT AGENT: Completed analysis and saved the result to {output_folder}/response.json")
+        #         self.task_completed = True
+        #         return "Analysis generated."
+        #     else:
+        #         print("No useful response was generated. Review the input or model configuration.")
+        #         return "An error occurred during analysis."
+
+        # except Exception as e:
+        #     self.task_completed = True
+        #     print("An unexpected error occurred:", str(e))
+        #     print("REDDIT AGENT: Task completed with error.")
+        #     return "Failed to generate analysis due to an error."
+        # finally:
+        #     # Ensures that task_completed is always set to True regardless of how the function exits
+        #     self.task_completed = True
     
     def retrieve_analysis(self):
         """Retrieve analysis generated earlier on.
         """
         print("Retrieving Analysis...")
-        with open(f"{output_folder}/response.json", 'r') as file:
+        with open(f"{self.output_path}/response.json", 'r') as file:
             # Read the file content
             json_text = file.read()
             
@@ -146,6 +185,6 @@ class RedditAgent(AgentBase):
 
             User: {prompt}
         """
-        response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+        result = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
-        return response
+        return "Done with analysis."

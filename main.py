@@ -1,24 +1,24 @@
+import logging
 from manager.agent_manager import AgentManager
 
 def main():
-    agent_manager = AgentManager()
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # user_input = "Tell me about the latest discussions on the game called Vampire Survivors."
+    agent_manager = AgentManager()
+    agent_keys = ['reddit_agent']
+    agent_manager.set_agents(agent_keys)
 
     while True:
-        # Input your message
         user_input = input("You: ")
-        # Check if the user wants to exit the chat
         if user_input.lower() in ['exit', 'quit']:
-            print("Exiting chat. Goodbye!")
+            logging.info("Exiting chat. Goodbye!")
             break
 
-        # Generate a response from the model
         try:
             response = agent_manager.generate_response(user_input)
             print("Gemini:", response)
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             break
 
 if __name__ == "__main__":

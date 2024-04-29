@@ -8,20 +8,25 @@ from agents.agent_base import AgentBase
 
 load_dotenv()
 genai.configure(api_key=os.environ["API_KEY"])
-output_folder = "output/steam_agent"
-os.makedirs(output_folder, exist_ok=True)
 
 class SteamAgent(AgentBase):
-    description = "An agent that can retrieve game reviews by specifying game name and analyse them."
-    def __init__(self):
-        self.functions = self.get_functions() 
-        super().__init__()
-    
-    def get_functions(self):
-        return {
+    def __init__(self, model, output_path):
+        super().__init__(model, output_path)
+        os.makedirs(output_path, exist_ok=True)
+        self.functions = {
             'retrieve_reviews': self.retrieve_reviews,
             'analyze_reviews': self.analyze_reviews
         }
+        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
+        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
+
+    @property
+    def name(self):
+        return "SteamAgent"
+
+    @property
+    def description(self):
+        return "The Steam Agent analyzes game reviews and provides insights based on the specified game."
 
     def get_steam_appid(self, game_name):
         url = "https://api.steampowered.com/ISteamApps/GetAppList/v2/"
@@ -66,7 +71,6 @@ class SteamAgent(AgentBase):
         Returns:
             str: Summary or analysis results, or a message indicating that no posts are available.
         """
-        print("STEAM AGENT: ANALYSING REVIEWS")
         try:
             with open(reviews_file_path, 'r', encoding='utf-8') as file:
                 reviews_data = json.load(file)
@@ -77,10 +81,15 @@ class SteamAgent(AgentBase):
             review_texts = [f"Review: {review['review']}" for review in reviews_details]
             analysis_prompt = f"{instruction}\n\n{' '.join(review_texts)}"
 
-            response = self.pro_generate_analysis(analysis_prompt,output_folder)
+            response = self.pro_generate_analysis(analysis_prompt,self.output_path)
 
-            return f"Review analysis has been completed and is saved in '{output_folder}'"
+            # model = genai.GenerativeModel('gemini-1.5-pro-latest')
+            # response = model.generate_content(analysis_prompt)
 
+            # with open(f"{self.output_path}/response.json", 'w') as file:
+            #     json.dump(response.text, file)
+            # self.task_completed = True
+            # return response.text
         except Exception as e:
             return str(e)
 
@@ -109,17 +118,17 @@ class SteamAgent(AgentBase):
             review_dict, query_count = steamreviews.download_reviews_for_app_id(app_id, chosen_request_params=request_params)
 
             extracted_data = self.extract_reviews_data(review_dict)
-            output_path = f"{output_folder}/{app_id}_reviews_extracted.json"
+            output_path = f"{self.output_path}/{app_id}_reviews_extracted.json"
 
-            with open(f"{output_folder}/{app_id}_reviews_raw.json", 'w', encoding='utf-8') as f:
+            with open(f"{self.output_path}/{app_id}_reviews_raw.json", 'w', encoding='utf-8') as f:
                 json.dump(review_dict, f, ensure_ascii=False, indent=4)
 
-            with open(f"{output_folder}/{app_id}_reviews_extracted.json", 'w', encoding='utf-8') as f:
+            with open(f"{self.output_path}/{app_id}_reviews_extracted.json", 'w', encoding='utf-8') as f:
                 json.dump(extracted_data, f, ensure_ascii=False, indent=4)
 
-            print(f"STEAM AGENT: Reviews downloaded and processed. Raw data saved to '{output_folder}/{app_id}_reviews_raw.json'.")
-            print(f"STEAM AGENT: Extracted review details saved to '{output_folder}/{app_id}_reviews_extracted.json'.")
-            return f"Reviews downloaded, processed and saved to '{output_folder}/{app_id}_reviews_extracted.json'."
+            print(f"STEAM AGENT: Reviews downloaded and processed. Raw data saved to '{self.output_path}/{app_id}_reviews_raw.json'.")
+            print(f"STEAM AGENT: Extracted review details saved to '{self.output_path}/{app_id}_reviews_extracted.json'.")
+            return f"Reviews downloaded, processed and saved to '{self.output_path}/{app_id}_reviews_extracted.json'."
         else:
             print(f"STEAM AGENT: Whoops, no matching Steam game found for '{clarified_game_name}'.")
 
@@ -129,6 +138,6 @@ class SteamAgent(AgentBase):
 
             User: {prompt}
         """
-        response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+        result = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
 
-        return response
+        return "Done with review analysis."

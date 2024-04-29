@@ -1,26 +1,37 @@
 from abc import ABC, abstractmethod
+from dotenv import load_dotenv
 import google.generativeai as genai
-from google.protobuf.struct_pb2 import Struct
-import google.ai.generativelanguage as glm
 import json
+import logging
+
+import os
+load_dotenv()
+genai.configure(api_key=os.environ["API_KEY"])
 
 class AgentBase(ABC):
     def __init__(self):
-        # self.model = genai.GenerativeModel(model_name='gemini-1.0-pro')
-        self.task_completed = False
-        self.messages = []
+        self.model = None
+        self.chat = None
+        self.set_model() 
 
     @abstractmethod
     def generate_response(self, prompt: str) -> str:
         pass
 
-    def execute_function_sequence(self, model, functions, prompt, chat):
-        self.task_completed = False
+    @abstractmethod
+    def get_functions(self):
+        pass
 
-        while not self.task_completed:
-            print("Generating response...")
-            response = chat.send_message(prompt)
-            print(f"TASK COMPLETED: {self.task_completed}")
+    def set_model(self):
+        functions = self.get_functions()
+        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=functions.values())
+        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
+
+    def execute_function_sequence(self, model, functions, prompt, chat):
+        logging.debug(f"Generating response using the following prompt:\n{prompt}")
+        response = chat.send_message(prompt)
+        logging.debug(f"CHAT HISTORY:\n{chat.history}")
+        logging.debug(f"DEBUG: response: \n\n{response}")
         return response.text
     
     def pro_generate_analysis(self, summary_prompt, output_folder):
@@ -48,18 +59,13 @@ class AgentBase(ABC):
                 with open(f"{output_folder}/response.json", 'w') as file:
                     json.dump(analysis_text, file)
 
-                print(f"REDDIT AGENT: Completed analysis and saved the result to {output_folder}/response.json")
-                self.task_completed = True
+                print(f"Completed analysis and saved the result to {output_folder}/response.json")
                 return f"Analysis generated, and it is available at {output_folder}/response.json"
             else:
                 print("No useful response was generated. Review the input or model configuration.")
                 return "An error occurred during analysis."
 
         except Exception as e:
-            self.task_completed = True
             print("An unexpected error occurred:", str(e))
             print("REDDIT AGENT: Task completed with error.")
             return "Failed to generate analysis due to an error."
-        finally:
-            # Ensures that task_completed is always set to True regardless of how the function exits
-            self.task_completed = True
