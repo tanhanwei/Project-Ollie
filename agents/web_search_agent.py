@@ -10,7 +10,7 @@ from utils.file import File
 from app_constants import RESPONSE, RESPONSE_STYLE
 
 load_dotenv()
-output_folder = "output/web_search_agent"
+output_folder = f"output/{__name__.split('.')[-1]}"
 os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 

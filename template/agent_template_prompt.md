@@ -3,7 +3,7 @@ Please create a Chuck Norris Agent Class based on the template and the reference
 # Template
 
 ```python
-# {agent_name}_agent.py
+# g_{agent_name}_agent.py
 import os
 from dotenv import load_dotenv
 from agents.agent_base import AgentBase
@@ -12,7 +12,7 @@ from utils.file import File
 from app_constants import RESPONSE
 
 load_dotenv()
-output_folder = "output/{agent_name}_agent"
+output_folder = f"output/{__name__.split('.')[-1]}"
 os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 

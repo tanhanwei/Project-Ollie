@@ -18,8 +18,9 @@ def main():
     #     print("Gemini:", response)
     # else:
     agent_manager = AgentManager()
-    agent_keys = ['steam_agent','web_search_agent','reddit_agent', 'chuck_norris_agent', 'code_generator_agent']
-    # agent_keys = ['chuck_norris_agent']
+    # agent_keys = ['steam_agent','web_search_agent','reddit_agent', 'chuck_norris_agent', 'code_generator_agent']
+    agent_keys = ['g_wikipedia_agent_agent_BKP2']
+    # agent_keys = ['steam_agent','web_search_agent','reddit_agent', 'chuck_norris_agent']
     agent_manager.set_agents(agent_keys)
 
     while True:

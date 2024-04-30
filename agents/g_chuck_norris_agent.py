@@ -8,7 +8,7 @@ from app_constants import RESPONSE
 import requests
 
 load_dotenv()
-output_folder = "output/chuck_norris_agent"
+output_folder = f"output/{__name__.split('.')[-1]}"
 os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 

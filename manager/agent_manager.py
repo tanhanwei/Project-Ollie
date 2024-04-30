@@ -122,6 +122,8 @@ class AgentManager(AgentBase):
 
         self.delegated_agents = agents  # Update delegated_agents to include all the current agents
 
+        print(f"AGENT MANAGER: Delegated AGENTS:\n\n{self.delegated_agents}\n\n")
+
         response = self.summarize_agents_responses()
 
         # return "\n".join(agent_responses)

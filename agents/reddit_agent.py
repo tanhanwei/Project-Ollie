@@ -20,7 +20,7 @@ reddit = praw.Reddit(
     user_agent=f'script by /u/{username}',
     username=username
 )
-output_folder = "output/reddit_agent"
+output_folder = f"output/{__name__.split('.')[-1]}"
 os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 

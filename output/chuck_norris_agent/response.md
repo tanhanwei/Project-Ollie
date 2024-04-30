@@ -1,2 +1,0 @@
-Sure, here's a joke for you:
-The pie scene in "American Pie" is based on a dare Chuck Norris took when he was younger. However, in Chuck Norris' case, the "pie" was the molten crater of an active volcano.
