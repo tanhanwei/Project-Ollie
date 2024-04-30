@@ -1,11 +1,12 @@
 import logging
 from manager.agent_manager import AgentManager
+from app_constants import RESPONSE
 
 def main():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     agent_manager = AgentManager()
-    agent_keys = ['reddit_agent']
+    agent_keys = ['steam_agent','web_search_agent','reddit_agent', 'chuck_norris_agent']
     agent_manager.set_agents(agent_keys)
 
     while True:

@@ -1,4 +1,3 @@
-# agent_registry.py
 import importlib
 import pkgutil
 from typing import Dict, Type
