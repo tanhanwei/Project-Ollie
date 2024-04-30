@@ -1,7 +1,3 @@
-Please create a Chuck Norris Agent Class based on the template and the reference:
-
-# Template
-
 ```python
 # {agent_name}_agent.py
 import os
@@ -86,7 +82,7 @@ class {AgentName}Agent(AgentBase):
         return result
 ```
 
-Explanation of the template:
+# Explanation of the template:
 
 1. The `NewAgent` class inherits from `AgentBase`, ensuring that it has access to the common functionality provided by the base class.
 
@@ -112,62 +108,3 @@ Explanation of the template:
 10. All data MUST be saved externally. Any local data variable such as self.data, self.data_store, etc must be saved externally.
 
 11. Function sequence can be chained so that the final response gives the final answer or summary.
-
-# Reference:
-
-Chuck Norris Jokes Api - JSON API for random Chuck Norris jokes
-chucknorris.io is a free JSON API for hand curated Chuck Norris facts. Read more
-
-Subscribe for new Chuck Facts
-Enter your email
- 
-Usage
-Retrieve a random chuck joke in JSON format.
-
-https://api.chucknorris.io/jokes/random
-Example response:
-
-{
-"icon_url" : "https://assets.chucknorris.host/img/avatar/chuck-norris.png",
-"id" : "q8fcx7zdQpmpSpiRrEKlxg",
-"url" : "",
-"value" : "Chuck Norris COULD bench press Rosie O'Donnell."
-}
-Get me a new one ... (press "r" to refresh)
-Retrieve a random chuck norris joke from a given category.
-
-https://api.chucknorris.io/jokes/random?category={category}
-Retrieve a list of available categories.
-
-https://api.chucknorris.io/jokes/categories
-Free text search.
-
-https://api.chucknorris.io/jokes/search?query={query}
-Slack Integration
-The Chuck Norris app existed even before slack existed. Start retrieving random Chuck Norris facts by just typing /chuck into your slack console.
-
-Additionally you can type /chuck {category_name} to get a random joke from a given category. Type /chuck -cat to show a list of all available categories.
-
-You can also try the free text search by sending /chuck ? {search_term}.
-
-Fool your coworkers by personalizing your Chuck Facts with /chuck @{user_name}.
-
-Add to Slack
-Installation takes just 1 minute!
-
-Help: From within slack, you can just type /chuck help for some extra information on how to use the app.
-
-Facebook Messenger
-The Chuck Norris app is also on Facebook Messenger. Click the Message Us button below to start a conversation.
-
-You can simply ask a random joke by typing hi, tell me a joke. To get help to get started type help.
-
-Contact: Feel free to tweet ideas, suggestions, help requests and similar to @matchilling or drop me a line at m@matchilling.com
-
-Privacy: The app was a weekend project and is just fun. All we're storing are team and user ids and the appropriate OAuth tokens. This allows you to post these awesome Chuck Norris facts on slack on the appropriate channel. Our applications is hosted on https://aws.amazon.com/privacy. We use a secure connection between slack servers and aws. We anonymously keep track of two data points; the total number of teams and unique users. None of the data will ever be shared, except for maybe some anonymous statistics in the future.
-
-Chucknorris.io is free and will always be! However, as maintaining this service costs $$$, we are glad to be sponsored by Jugendstil.io.
-Twitter GitHub 
-Attribution: Artwork "Dancing Chuck" by jesgrad07
-Legal disclaimer: This website and its creators are not affiliated with Chuck Norris, any motion picture corporation, any television corporation, parent, or affiliate corporation. All motion pictures, products, and brands mentioned on this website are the respective trademarks and copyrights of their owners. All material on this website is intended for humorous entertainment (satire ) purposes only. The content on this website is not necessarily true and should not be regarded as truth.
-Application Privacy Statement Status

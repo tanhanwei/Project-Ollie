@@ -26,9 +26,11 @@ class AgentManager(AgentBase):
         self.functions = self.get_functions()  # Define self.functions before calling super().__init__()
         super().__init__()
         self.agent_classes = discover_agents()
+        print(f"LOADED AGENTS: {self.agent_classes}")
         self.agents = {}
         self.data_store = {}
         self.delegated_agents = []
+        self.code_generator_enabled = False
 
     def get_functions(self):
         return {
@@ -40,18 +42,46 @@ class AgentManager(AgentBase):
             #'chat_with_data': self.chat_with_data
         }
 
+    # def set_agents(self, agent_keys):
+    #     """
+    #     Initialize and set the agents based on the provided agent keys, and then init the Gemini model.
+    #     """
+    #     for agent_key in agent_keys:
+    #         agent_class = self.agent_classes.get(agent_key)
+    #         if agent_class:
+    #             self.agents[agent_key] = agent_class()
+    #             print(f"Initialized {agent_key} agent.")
+    #         else:
+    #             print(f"No agent found for key: {agent_key}")
     def set_agents(self, agent_keys):
         """
         Initialize and set the agents based on the provided agent keys, and then init the Gemini model.
+        If the code generator agent is in the agent_keys list, enable the code generator and disable all other agents.
         """
+        self.code_generator_enabled = 'code_generator_agent' in agent_keys
+
         for agent_key in agent_keys:
-            agent_class = self.agent_classes.get(agent_key)
-            if agent_class:
-                self.agents[agent_key] = agent_class()
-                print(f"Initialized {agent_key} agent.")
+            if agent_key == 'code_generator_agent':
+                if self.code_generator_enabled:
+                    agent_class = self.agent_classes.get(agent_key)
+                    if agent_class:
+                        self.agents[agent_key] = agent_class()
+                        print(f"Initialized {agent_key} agent.")
+                        # Disable all other agents
+                        self.agents = {agent_key: self.agents[agent_key]}
+                        print("Code Generator Agent is enabled. All other agents are disabled.")
+                        break
+                    else:
+                        print(f"No agent found for key: {agent_key}")
             else:
-                print(f"No agent found for key: {agent_key}")
-    
+                if not self.code_generator_enabled:
+                    agent_class = self.agent_classes.get(agent_key)
+                    if agent_class:
+                        self.agents[agent_key] = agent_class()
+                        print(f"Initialized {agent_key} agent.")
+                    else:
+                        print(f"No agent found for key: {agent_key}")
+                    
     def get_all_agents(self):
         """
         Get the list of all agents, which may or may not be activated
@@ -162,28 +192,36 @@ class AgentManager(AgentBase):
 
     
     def generate_response(self, user_prompt):
-        self.user_input = user_prompt
-
-        if self.first_conversation:
-            agent_descriptions = []
-            for agent_key in self.get_active_agents():
-                agent = self.agents[agent_key]
-                description = getattr(agent, 'description', f"No description available for {agent_key} agent.")
-                agent_descriptions.append(f"- {agent_key}: {description}")
-
-            prompt = f"""You are an agent manager who can answer users' questions and delegate tasks to other agents to perform research and analysis on certain topics. Currently, these are the agents available:
-
-    {' '.join(agent_descriptions)}
-
-    You can delegate to more than 1 agent.
-
-    User: {user_prompt}
-    """
-            self.first_conversation = False
+        if self.code_generator_enabled:
+            code_generator = self.agents["code_generator_agent"]
+            code_generator.set_user_prompt(user_prompt)
+            response = code_generator.generate_response(user_prompt)
+            return response
         else:
-            prompt = f"{user_prompt}"
+            # generate response normally
+            self.user_input = user_prompt
 
-        # logging.debug(f"Generating response using the following prompt:\n{prompt}")
-        response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+            if self.first_conversation:
+                agent_descriptions = []
+                for agent_key in self.get_active_agents():
+                    agent = self.agents[agent_key]
+                    description = getattr(agent, 'description', f"No description available for {agent_key} agent.")
+                    agent_descriptions.append(f"- {agent_key}: {description}")
 
-        return response
+                prompt = f"""
+                        You are an agent manager who can answer users' questions and delegate tasks to other agents to perform research and analysis on certain topics. Currently, these are the agents available:
+
+                        {' '.join(agent_descriptions)}
+
+                        You can delegate to more than 1 agent.
+
+                        User: {user_prompt}
+                    """
+                self.first_conversation = False
+            else:
+                prompt = f"{user_prompt}"
+
+            # logging.debug(f"Generating response using the following prompt:\n{prompt}")
+            response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+
+            return response
