@@ -1,1 +1,0 @@
-Wiki is a type of collaborative website where users can edit and manage the content. It functions through a web browser, and each wiki usually centers around specific subjects or the scope of a project. Wikis can be public or limited to internal use within an organization.
