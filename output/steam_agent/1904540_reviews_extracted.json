@@ -1,0 +1,25 @@
+{
+    "reviews_details": [
+        {
+            "review": "ta piola"
+        },
+        {
+            "review": "傻逼游戏，垃圾机制"
+        },
+        {
+            "review": "나중에 더 발전한 버전이 나오겠지만 일단 현재까지는 이 버전이 개인적으로 개추!"
+        },
+        {
+            "review": "Найбільш реалістичний та захоплюючий футбольний менеджер, навіть якщо і поріг входу достатньо великий.\n\n[i]Оцінка: [b]8,5[/b][/i]"
+        },
+        {
+            "review": "The player movements are beyond frustrating, and it seems like the AI can score at will, no matter what you try. And don't get me started on those one-on-one situations with the keeper—your player just gifts the ball to them every single time!\r\n\r\nSeriously, this match engine is a joke. Same old conversations, and the options to click are just mind-numbingly dull. It's like the dumbest game I've seen in ages."
+        }
+    ],
+    "summary": {
+        "review_score_desc": "Very Positive",
+        "total_positive": 16997,
+        "total_negative": 1997,
+        "total_reviews": 18994
+    }
+}

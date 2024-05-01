@@ -5,16 +5,68 @@
 	import type { ChatModel } from '$lib/models/chat_model';
 
 	let text = '';
-	let activeAgents = ['Steam', 'Reddit'];
+	let activeAgents = ['steam_agent', 'reddit_agent'];
 
-	function onNewChat() {
+	let loading = false;
+
+	async function onNewChat() {
+		await createManager();
 		isChatSelected.set(false);
 		currentChat.set(null);
 	}
 
-	function checkIfChatIsSelectedFromAll() {}
+	async function createManager() {
+		let url = './create-manager';
 
-	function onSend(newMessage: string, isUserInput: boolean) {
+		let response = await fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				console.log('Success:', data);
+			})
+			.catch((error) => {
+				console.error('Error:', error);
+			});
+	}
+
+	async function callAPI() {
+		if (text === '') {
+			return;
+		}
+
+		loading = true;
+
+		let url = './api';
+
+		await fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				input: text,
+				agent_keys: ['steam_agent']
+			})
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				console.log('Success:', data);
+
+				let responseData = data['response'];
+				onSend(responseData, false, false);
+			})
+			.catch((error) => {
+				console.error('Error:', error);
+			});
+
+		loading = false;
+	}
+
+	async function onSend(newMessage: string, isUserInput: boolean, useAPI: boolean = true) {
 		if (newMessage === '') {
 			return;
 		}
@@ -41,6 +93,10 @@
 				return chats;
 			});
 
+			if (useAPI == true) {
+				await callAPI();
+			}
+
 			text = '';
 			return;
 		}
@@ -66,11 +122,19 @@
 		});
 
 		currentChat.set(newChat);
+
 		isChatSelected.set(true);
+
+		if (useAPI == true) {
+			await createManager();
+			await callAPI();
+		}
+
 		text = '';
 	}
 
 	function onChatSelect(chatModel: ChatModel) {
+		isChatSelected.set(true);
 		currentChat.set(chatModel);
 	}
 </script>
@@ -116,24 +180,22 @@
 			<slot></slot>
 
 			<div class="flex flex-row w-full rounded-t-md items-center justify-center">
-				<input
-					type="text"
-					placeholder="Ask away!"
-					class=" input input-lg input-primary input-bordered m-3 rounded-2xl w-[382px] text-secondary-content"
-					bind:value={text}
-				/>
-				<button
-					class="btn btn-primary btn-lg rounded-2xl"
-					on:click={() => {
-						onSend(text, true);
-					}}>Send</button
-				>
-				<button
-					class="ml-2 btn btn-primary btn-lg rounded-2xl"
-					on:click={() => {
-						onSend(text, false);
-					}}>Agent</button
-				>
+				{#if loading == false}
+					<input
+						type="text"
+						placeholder="Ask away!"
+						class=" input input-lg input-primary input-bordered m-3 rounded-2xl w-[500px] text-secondary-content"
+						bind:value={text}
+					/>
+					<button
+						class="btn btn-primary btn-lg rounded-2xl"
+						on:click={() => {
+							onSend(text, true);
+						}}>Send</button
+					>
+				{:else}
+					<div class="loading loading-dots loading-lg text-primary mb-5" />
+				{/if}
 			</div>
 		</div>
 
@@ -147,8 +209,8 @@
 				<div class="flex flex-row">
 					<div
 						class="btn btn-primary btn-sm rounded-xl mr-3"
-						on:click={() => {
-							onNewChat();
+						on:click={async () => {
+							await onNewChat();
 						}}
 					>
 						New Chat

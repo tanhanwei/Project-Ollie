@@ -1,14 +1,53 @@
-from flask import Flask
+import random
+from flask import Flask, request, jsonify, send_from_directory
+import logging
+from manager.agent_manager import AgentManager
 
 app = Flask(__name__)
 
-@app.route('/')
-def index():
-	return 'Hello, Flask!'
+agent_manager = AgentManager()
 
-@app.route('/chat') 
-def chat():
-    return 'Hello!'
 
-if __name__ == '__main__':
-	app.run(debug=True)
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Path for our main Svelte page
+@app.route("/")
+def base():
+    return send_from_directory('gemini-client/build', 'index.html')
+
+# Path for all the static files (compiled JS/CSS, etc.)
+@app.route("/<path:path>")
+def home(path):
+    return send_from_directory('gemini-client/build', path)
+
+@app.route('/create-manager', methods=['POST']) 
+def create_manager():
+    agent_manager = AgentManager()
+    return jsonify({'response': 'Manager created'}), 200
+
+
+@app.route('/api', methods=['POST'])
+def get_response():
+    
+    data = request.get_json(force=True, silent=True , cache=False)
+    print("Received Data: ", data)
+    
+    user_input = data["input"]
+    agent_keys = data["agent_keys"]  # Default to empty list if not provided
+
+    if not user_input:
+        return jsonify({'error': 'No input provided'}), 400
+
+    agent_manager.set_agents(agent_keys)
+
+    try:
+        response = agent_manager.generate_response(user_input)
+        return jsonify({'response': response}), 200
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)  # Set debug=False in a production environment
