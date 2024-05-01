@@ -3,16 +3,74 @@
 	import '../app.css';
 	import { allChats, currentChat, isChatSelected } from '$lib/stores/current_chat';
 	import type { ChatModel } from '$lib/models/chat_model';
+	import { onMount } from 'svelte';
+	import { io } from 'socket.io-client';
 
 	let text = '';
-	let activeAgents = ['steam_agent', 'reddit_agent'];
+	let allAgents: string[] = [];
+
+	let activeAgents: string[] = [];
 
 	let loading = false;
+
+	let messages: any[] = [];
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault(); // Prevent the default behavior of Enter key
+			onSend(text, true); // Assuming onSend is a function to handle sending the text
+		}
+	}
+
+	onMount(() => {
+		getAllAgents();
+
+		const baseUrl = window.location.origin; // Dynamically get the base URL
+		const socket = io(baseUrl); // Connect to WebSocket server at the same base URL
+
+		socket.on('connect', () => {
+			console.log('Connected to the server!');
+		});
+
+		socket.on('debug', (data) => {
+			console.log('Debug:', data.message); // Ensure this matches the event name and logs correctly
+
+			messages = [...messages, data.message]; // Update messages array with new message
+		});
+
+		socket.on('disconnect', () => {
+			console.log('Disconnected from server');
+			socket.close();
+		});
+
+		return () => {
+			socket.close();
+		};
+	});
 
 	async function onNewChat() {
 		await createManager();
 		isChatSelected.set(false);
 		currentChat.set(null);
+	}
+
+	async function getAllAgents() {
+		let url = './get-agents';
+
+		await fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				console.log('Success:', data);
+				allAgents = data['agents'];
+			})
+			.catch((error) => {
+				console.error('Error:', error);
+			});
 	}
 
 	async function createManager() {
@@ -49,7 +107,7 @@
 			},
 			body: JSON.stringify({
 				input: text,
-				agent_keys: ['steam_agent']
+				agent_keys: activeAgents
 			})
 		})
 			.then((response) => response.json())
@@ -137,128 +195,184 @@
 		isChatSelected.set(true);
 		currentChat.set(chatModel);
 	}
+
+	function toggleAgent(agent: string) {
+		let index = activeAgents.indexOf(agent);
+
+		if (index > -1) {
+			activeAgents = activeAgents.filter((item) => item !== agent);
+		} else {
+			activeAgents = [...activeAgents, agent];
+		}
+	}
 </script>
 
-<div class="drawer lg:drawer-open">
-	<input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
-	<div class="drawer-content flex flex-col justify-between items-center">
-		<label class="navbar shadow-xl shadow-gray-50 flex flex-row justify-between px-3">
-			<label for="my-drawer-2" class="btn btn-ghost drawer-button lg:hidden">Menu</label>
+<div class="flex flex-row">
+	<div class="drawer lg:drawer-open">
+		<input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
 
-			<div class=" font-bold text-[18px]">Google 2024 Gemini Hackathon!</div>
-		</label>
+		<div class="drawer-content flex flex-col justify-between items-center">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
+			<label class="navbar shadow-xl shadow-gray-50 flex flex-row justify-between px-3">
+				<label for="my-drawer-2" class="btn btn-ghost drawer-button lg:hidden">Menu</label>
 
-		{#if $isChatSelected !== true}
-			<div class="grid grid-cols-2">
-				<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mr-5">
-					<div class="text-secondary-content p-5 text-center">
-						Start asking quesitons, I am ready to answer!
-					</div>
-				</div>
-
-				<div class="bg-secondary opacity-50 rounded-2xl w-[350px]">
-					<div class="text-secondary-content p-5 text-center">
-						"What are the latest sentiments about Cyeberpunk 2077?"
-					</div>
-				</div>
-
-				<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mt-5 mr-5">
-					<div class="text-secondary-content p-5 text-center">
-						"Which games are trending in the market?"
-					</div>
-				</div>
-
-				<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mt-5">
-					<div class="text-secondary-content p-5 text-center">
-						"Which new moive is getting the most attention on reddit?"
-					</div>
-				</div>
-			</div>
-		{/if}
-
-		<div>
-			<slot></slot>
-
-			<div class="flex flex-row w-full rounded-t-md items-center justify-center">
-				{#if loading == false}
-					<input
-						type="text"
-						placeholder="Ask away!"
-						class=" input input-lg input-primary input-bordered m-3 rounded-2xl w-[500px] text-secondary-content"
-						bind:value={text}
-					/>
-					<button
-						class="btn btn-primary btn-lg rounded-2xl"
-						on:click={() => {
-							onSend(text, true);
-						}}>Send</button
-					>
-				{:else}
-					<div class="loading loading-dots loading-lg text-primary mb-5" />
-				{/if}
-			</div>
-		</div>
-
-		<!-- text box at end of the page -->
-	</div>
-	<div class="drawer-side">
-		<label for="my-drawer-2" aria-label="close sidebar" class="drawer-overlay"></label>
-		<ul class="menu bg-base-300 p-0 w-72 min-h-full text-base-content flex flex-col">
-			<label class="navbar bg-base-200 shadow-xl shadow-gray-50 justify-between">
-				<div class="text-secondary-content font-bold ml-3 text-[18px]">Your Chats</div>
-				<div class="flex flex-row">
-					<div
-						class="btn btn-primary btn-sm rounded-xl mr-3"
-						on:click={async () => {
-							await onNewChat();
-						}}
-					>
-						New Chat
-					</div>
-				</div>
+				<div class=" font-bold text-[18px]">Google 2024 Gemini Hackathon!</div>
 			</label>
 
-			{#if $allChats.length == 0}
-				<div class="bg-secondary opacity-50 rounded-2xl mx-5 my-3">
-					<div class="text-secondary-content p-5 m-0 text-center">Start a new chat with me!</div>
+			{#if $isChatSelected !== true}
+				<div class="grid grid-cols-2">
+					<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mr-5">
+						<div class="text-secondary-content p-5 text-center">
+							Start asking quesitons, I am ready to answer!
+						</div>
+					</div>
+
+					<div class="bg-secondary opacity-50 rounded-2xl w-[350px]">
+						<div class="text-secondary-content p-5 text-center">
+							"What are the latest sentiments about Cyeberpunk 2077?"
+						</div>
+					</div>
+
+					<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mt-5 mr-5">
+						<div class="text-secondary-content p-5 text-center">
+							"Which games are trending in the market?"
+						</div>
+					</div>
+
+					<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mt-5">
+						<div class="text-secondary-content p-5 text-center">
+							"Which new movie is getting the most attention on reddit?"
+						</div>
+					</div>
 				</div>
 			{/if}
 
-			<div class="mx-5 mt-2">
-				<!-- all chat id as button -->
-				{#each $allChats as chat}
-					{#if chat.id == $currentChat?.id}
-						<button
-							class="btn btn-primary rounded-xl text-left mb-3 w-full"
-							on:click={() => {
-								onChatSelect(chat);
-							}}>{chat.id}</button
+			<div>
+				<slot></slot>
+
+				<div class="flex flex-row w-full rounded-t-md items-center justify-center">
+					{#if loading == false}
+						<form
+							class="m-3 flex flex-row w-full rounded-t-md"
+							on:submit|preventDefault={() => {
+								console.log('submit');
+							}}
 						>
+							<textarea
+								placeholder="Ask away!"
+								class=" textarea textarea-md textarea-primary textarea-bordered rounded-2xl text-secondary-content max-h-32 mr-3 w-full"
+								bind:value={text}
+								on:keydown={handleKeyDown}
+							/>
+							<button
+								class="btn btn-primary btn-lg rounded-2xl"
+								type="submit"
+								on:click={async () => {
+									await onSend(text, true);
+								}}>Send</button
+							>
+						</form>
 					{:else}
-						<button
-							class="btn btn-secondary rounded-xl text-left mb-3 w-full"
-							on:click={() => {
-								onChatSelect(chat);
-							}}>{chat.id}</button
-						>
+						<div class="loading loading-dots loading-lg text-primary mb-5" />
 					{/if}
-				{/each}
+				</div>
 			</div>
 
-			<div class="divider opacity-40 rounded-md m-0 mx-5"></div>
-			<div class="text-secondary-content font-bold ml-5 mt-5 mb-5 text-[18px]">Active Agents</div>
-
-			<div class="mx-5">
-				{#each activeAgents as agent}
-					<!-- toggle -->
-					<div class="form-control mb-3 bg-secondary p-2 rounded-xl">
-						<label class="label cursor-pointer">
-							<span class="label-text text-secondary-content">{agent}</span>
-							<input type="checkbox" class="toggle toggle-primary toggle-sm" checked />
-						</label>
+			<!-- text box at end of the page -->
+		</div>
+		<div class="drawer-side">
+			<label for="my-drawer-2" aria-label="close sidebar" class="drawer-overlay"></label>
+			<ul class="menu bg-base-300 p-0 w-72 min-h-full text-base-content flex flex-col">
+				<!-- svelte-ignore a11y-label-has-associated-control -->
+				<label class="navbar bg-base-200 shadow-xl shadow-gray-50 justify-between">
+					<div class="text-secondary-content font-bold ml-3 text-[18px]">Your Chats</div>
+					<div class="flex flex-row">
+						<!-- svelte-ignore a11y-click-events-have-key-events -->
+						<!-- svelte-ignore a11y-no-static-element-interactions -->
+						<div
+							class="btn btn-primary btn-sm rounded-xl mr-3"
+							on:click={async () => {
+								await onNewChat();
+							}}
+						>
+							New Chat
+						</div>
 					</div>
-				{/each}
+				</label>
+
+				{#if $allChats.length == 0}
+					<div class="bg-secondary opacity-50 rounded-2xl mx-5 my-3">
+						<div class="text-secondary-content p-5 m-0 text-center">Start a new chat with me!</div>
+					</div>
+				{/if}
+
+				<div class="mx-5 mt-2">
+					<!-- all chat id as button -->
+					{#each $allChats as chat}
+						{#if chat.id == $currentChat?.id}
+							<button
+								class="btn btn-primary rounded-xl text-left mb-3 w-full"
+								on:click={() => {
+									onChatSelect(chat);
+								}}>{chat.id}</button
+							>
+						{:else}
+							<button
+								class="btn btn-secondary rounded-xl text-left mb-3 w-full"
+								on:click={() => {
+									onChatSelect(chat);
+								}}>{chat.id}</button
+							>
+						{/if}
+					{/each}
+				</div>
+
+				<div class="divider opacity-40 rounded-md m-0 mx-5"></div>
+				<div class="text-secondary-content font-bold ml-5 mt-5 mb-5 text-[18px]">Active Agents</div>
+
+				<div class="mx-5 flex flex-col h-44 overflow-y-aut">
+					{#each allAgents as agent}
+						<!-- toggle -->
+						<div class="form-control mb-3 bg-secondary p-2 rounded-xl">
+							<label class="label cursor-pointer">
+								<span class="label-text text-secondary-content">{agent}</span>
+								<input
+									type="checkbox"
+									class="toggle toggle-primary toggle-sm"
+									on:change={() => {
+										toggleAgent(agent);
+									}}
+								/>
+							</label>
+						</div>
+					{/each}
+				</div>
+			</ul>
+		</div>
+	</div>
+
+	<div class="drawer bg-base-200 lg:drawer-open w-96 flex flex-col">
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<div class="flex flex-row justify-between">
+			<div class="text-secondary-content font-bold mx-4 mt-4 mb-3 text-[18px]">Server Logs</div>
+			<!-- svelte-ignore a11y-no-static-element-interactions -->
+			<div
+				class="btn btn-primary btn-sm rounded-xl mx-4 mt-4 mb-3"
+				on:click={() => {
+					messages = [];
+				}}
+			>
+				Clear Logs
 			</div>
-		</ul>
+		</div>
+
+		<div class="divider opacity-40 rounded-md mx-4 my-0"></div>
+		<div class="p-5 flex flex-col h-96">
+			{#each messages as message}
+				<div class="bg-secondary opacity-50 rounded-2xl mb-3">
+					<div class="text-secondary-content p-5">{message}</div>
+				</div>
+			{/each}
+		</div>
 	</div>
 </div>

@@ -6,6 +6,10 @@ from typing import List, Dict
 from agents.agent_base import AgentBase
 from utils.agent_registry import discover_agents
 from dotenv import load_dotenv
+from flask_socketio import SocketIO, emit
+from extensions import socketio
+
+
 import google.generativeai as genai
 import json
 import logging
@@ -31,6 +35,8 @@ class AgentManager(AgentBase):
         self.data_store = {}
         self.delegated_agents = []
         self.code_generator_enabled = False
+
+
 
     def get_functions(self):
         return {
@@ -81,7 +87,20 @@ class AgentManager(AgentBase):
                         print(f"Initialized {agent_key} agent.")
                     else:
                         print(f"No agent found for key: {agent_key}")
-                    
+
+
+
+    def emit_debug_message(self, emit_message, agent_name, ):
+        # try catch block to prevent the server from crashing if the socketio connection is not established
+        try:
+            socketio.emit('debug', {'message': emit_message, 'agent': agent_name})
+        except Exception as e:
+            print(f"Error emitting debug message: {e}")
+            logging.error(f"Error emitting debug message: {e}")
+            return
+
+         
+
     def get_all_agents(self):
         """
         Get the list of all agents, which may or may not be activated
@@ -113,6 +132,7 @@ class AgentManager(AgentBase):
         agent_responses = []
         for agent, instruction in zip(agents, agent_instructions):
             print(f"MANAGER: DELEGATING to: {agent} with instruction: {instruction}")
+            self.emit_debug_message(f"Delegating to: {agent} with instruction: {instruction}", "MANAGER AGENT")
             if agent in self.agents:
                 agent_response = self.agents[agent].generate_response(instruction)
                 self.data_store[f"{agent}_response"] = agent_response
@@ -155,6 +175,7 @@ class AgentManager(AgentBase):
         # if there's only 1 agent
         if len(agent_responses) == 1:
             print("MANAGER AGENT: Copying data from single agent...")
+            self.emit_debug_message("Copying data from single agent...", "MANAGER AGENT")
             agent_response =  agent_responses[0]
             # with open(f"{output_folder}/{RESPONSE}", 'w') as file:
             #     json.dump(agent_response, file)

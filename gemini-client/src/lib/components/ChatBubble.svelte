@@ -8,7 +8,7 @@
 
 <!-- create a message bubble based on data, the left side will be if not user input and right side if user input -->
 
-<div class="flex flex-row justify-center items-center">
+<div class="flex flex-row w-full rounded-t-md items-center justify-center px-3">
 	{#if chatData.isUserInput === false}
 		<div class="flex flex-row justify-start items-center">
 			<div class="bg-secondary rounded-2xl w-[600px] mb-3">

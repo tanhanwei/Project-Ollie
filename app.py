@@ -1,13 +1,15 @@
 import random
 from flask import Flask, request, jsonify, send_from_directory
+from flask_socketio import SocketIO, emit
+
 import logging
 from manager.agent_manager import AgentManager
+from extensions import socketio
 
 app = Flask(__name__)
+socketio.init_app(app)
 
 agent_manager = AgentManager()
-
-
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,18 +30,22 @@ def create_manager():
     return jsonify({'response': 'Manager created'}), 200
 
 
+@app.route('/get-agents', methods=['POST'])
+def get_agents():
+    agents = agent_manager.get_all_agents()
+    return jsonify({'agents': agents}), 200
+
 @app.route('/api', methods=['POST'])
 def get_response():
+    data = request.get_json(force=True, silent=True, cache=False)
+    socketio.emit('debug', {'message': f"Received Data: {data}"})  # Emit debug info
     
-    data = request.get_json(force=True, silent=True , cache=False)
-    print("Received Data: ", data)
+    user_input = data.get("input")
+    agent_keys = data.get("agent_keys", [])  # Default to empty list if not provided
     
-    user_input = data["input"]
-    agent_keys = data["agent_keys"]  # Default to empty list if not provided
-
     if not user_input:
         return jsonify({'error': 'No input provided'}), 400
-
+    
     agent_manager.set_agents(agent_keys)
 
     try:
@@ -49,5 +55,10 @@ def get_response():
         logging.error(f"An error occurred: {e}")
         return jsonify({'error': str(e)}), 500
 
+@socketio.on('connect')
+def test_connect():
+    emit('after connect',  {'data':'Let\'s communicate!'})
+
 if __name__ == "__main__":
     app.run(debug=True)  # Set debug=False in a production environment
+    socketio.run(app)
