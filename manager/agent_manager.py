@@ -1,3 +1,4 @@
+print(dir())
 import os
 import importlib
 import pkgutil
@@ -14,6 +15,10 @@ genai.configure(api_key=os.environ["API_KEY"])
 output_folder = "output/manager_agent"
 os.makedirs(output_folder, exist_ok=True)
 
+from utils.file import File
+from app_constants import RESPONSE
+response_path = f"{output_folder}/{RESPONSE}"
+
 DELEGATE_PROMPT_DEBUG = False
 
 class AgentManager(AgentBase):
@@ -21,10 +26,11 @@ class AgentManager(AgentBase):
         self.functions = self.get_functions()  # Define self.functions before calling super().__init__()
         super().__init__()
         self.agent_classes = discover_agents()
+        print(f"LOADED AGENTS: {self.agent_classes}")
         self.agents = {}
         self.data_store = {}
         self.delegated_agents = []
-        self.first_conversation = True
+        self.code_generator_enabled = False
 
     def get_functions(self):
         return {
@@ -36,18 +42,46 @@ class AgentManager(AgentBase):
             #'chat_with_data': self.chat_with_data
         }
 
+    # def set_agents(self, agent_keys):
+    #     """
+    #     Initialize and set the agents based on the provided agent keys, and then init the Gemini model.
+    #     """
+    #     for agent_key in agent_keys:
+    #         agent_class = self.agent_classes.get(agent_key)
+    #         if agent_class:
+    #             self.agents[agent_key] = agent_class()
+    #             print(f"Initialized {agent_key} agent.")
+    #         else:
+    #             print(f"No agent found for key: {agent_key}")
     def set_agents(self, agent_keys):
         """
         Initialize and set the agents based on the provided agent keys, and then init the Gemini model.
+        If the code generator agent is in the agent_keys list, enable the code generator and disable all other agents.
         """
+        self.code_generator_enabled = 'code_generator_agent' in agent_keys
+
         for agent_key in agent_keys:
-            agent_class = self.agent_classes.get(agent_key)
-            if agent_class:
-                self.agents[agent_key] = agent_class()
-                print(f"Initialized {agent_key} agent.")
+            if agent_key == 'code_generator_agent':
+                if self.code_generator_enabled:
+                    agent_class = self.agent_classes.get(agent_key)
+                    if agent_class:
+                        self.agents[agent_key] = agent_class()
+                        print(f"Initialized {agent_key} agent.")
+                        # Disable all other agents
+                        self.agents = {agent_key: self.agents[agent_key]}
+                        print("Code Generator Agent is enabled. All other agents are disabled.")
+                        break
+                    else:
+                        print(f"No agent found for key: {agent_key}")
             else:
-                print(f"No agent found for key: {agent_key}")
-    
+                if not self.code_generator_enabled:
+                    agent_class = self.agent_classes.get(agent_key)
+                    if agent_class:
+                        self.agents[agent_key] = agent_class()
+                        print(f"Initialized {agent_key} agent.")
+                    else:
+                        print(f"No agent found for key: {agent_key}")
+                    
     def get_all_agents(self):
         """
         Get the list of all agents, which may or may not be activated
@@ -60,6 +94,7 @@ class AgentManager(AgentBase):
         """
         return list(self.agents.keys())
 
+    # NOTE: Unable to dynamically modify docstring
     def delegate_task(self, agents: List[str], agent_instructions: List[str]):
         """You can delegate the tasks to one or more agents
         Args:
@@ -87,6 +122,8 @@ class AgentManager(AgentBase):
 
         self.delegated_agents = agents  # Update delegated_agents to include all the current agents
 
+        print(f"AGENT MANAGER: Delegated AGENTS:\n\n{self.delegated_agents}\n\n")
+
         response = self.summarize_agents_responses()
 
         # return "\n".join(agent_responses)
@@ -105,11 +142,12 @@ class AgentManager(AgentBase):
         instruction = "You are the master agent that handles user input and delegates tasks to other agents. Now that all agents have completed their tasks, based on all agents' responses below, write a detailed analysis, summarize and make a conclusion as a response to back to the user."
         agent_responses = []
         for agent in self.delegated_agents:
-            response_file_path = f"output/{agent}/response.json"
+            response_file_path = f"output/{agent}/{RESPONSE}"
             if os.path.exists(response_file_path):
-                with open(response_file_path, 'r') as file:
-                    response_data = json.load(file)
-                    agent_responses.append(response_data)
+                # with open(response_file_path, 'r') as file:
+                #     response_data = json.load(file)
+                response_data = File.read_md(response_file_path)
+                agent_responses.append(response_data)
 
         if not agent_responses:
             return "No agent responses found for summarization."
@@ -118,18 +156,19 @@ class AgentManager(AgentBase):
         if len(agent_responses) == 1:
             print("MANAGER AGENT: Copying data from single agent...")
             agent_response =  agent_responses[0]
-            with open(f"{output_folder}/response.json", 'w') as file:
-                json.dump(agent_response, file)
-            return f"Analysis generated by MANAGER AGENT, and it is available at {output_folder}/response.json"
+            # with open(f"{output_folder}/{RESPONSE}", 'w') as file:
+            #     json.dump(agent_response, file)
+            File.write_md(agent_response, response_path)
+            return f"Analysis generated by MANAGER AGENT, and it is available at {response_path}"
         else:
             prompt = f"{instruction}\n\nUser Input: {self.user_input}\n\nAgent Responses:\n"
             for i, response in enumerate(agent_responses, start=1):
                 prompt += f"Agent {i}: {response}\n"
 
-            response = self.pro_generate_analysis(prompt, output_folder)
-        
+            summary_text = self.pro_generate_analysis(prompt)
+            File.write_md(summary_text, response_path)
 
-        return response.text
+        return f"Analysis generated by MANAGER AGENT, and it is available at {response_path}"
 
     def retrieve_data_from_agents(self, agents: List[str]) -> Dict[str, dict]:
         """
@@ -143,15 +182,11 @@ class AgentManager(AgentBase):
         """
         agent_responses = {}
         for agent in agents:
-            response_file_path = f"output/{agent}/response.json"
+            response_file_path = f"output/{agent}/{RESPONSE}"
             if os.path.exists(response_file_path):
-                try:
-                    with open(response_file_path, 'r') as file:
-                        response_data = json.load(file)
-                        agent_responses[agent] = response_data
-                        logging.info(f"Data retrieved for {agent}")
-                except json.JSONDecodeError as e:
-                    logging.error(f"Failed to decode JSON from {response_file_path}: {e}")
+                response_data = File.read_md(response_file_path)
+                agent_responses[agent] = response_data
+                logging.info(f"Data retrieved for {agent}")
             else:
                 logging.warning(f"Response file not found for {agent}: {response_file_path}")
         return agent_responses
@@ -159,28 +194,36 @@ class AgentManager(AgentBase):
 
     
     def generate_response(self, user_prompt):
-        self.user_input = user_prompt
-
-        if self.first_conversation:
-            agent_descriptions = []
-            for agent_key in self.get_active_agents():
-                agent = self.agents[agent_key]
-                description = getattr(agent, 'description', f"No description available for {agent_key} agent.")
-                agent_descriptions.append(f"- {agent_key}: {description}")
-
-            prompt = f"""You are an agent manager who can answer users' questions and delegate tasks to other agents to perform research and analysis on certain topics. Currently, these are the agents available:
-
-    {' '.join(agent_descriptions)}
-
-    You can delegate to more than 1 agent.
-
-    User: {user_prompt}
-    """
-            self.first_conversation = False
+        if self.code_generator_enabled:
+            code_generator = self.agents["code_generator_agent"]
+            code_generator.set_user_prompt(user_prompt)
+            response = code_generator.generate_response(user_prompt)
+            return response
         else:
-            prompt = f"{user_prompt}"
+            # generate response normally
+            self.user_input = user_prompt
 
-        # logging.debug(f"Generating response using the following prompt:\n{prompt}")
-        response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+            if self.first_conversation:
+                agent_descriptions = []
+                for agent_key in self.get_active_agents():
+                    agent = self.agents[agent_key]
+                    description = getattr(agent, 'description', f"No description available for {agent_key} agent.")
+                    agent_descriptions.append(f"- {agent_key}: {description}")
 
-        return response
+                prompt = f"""
+                        You are an agent manager who can answer users' questions and delegate tasks to other agents to perform research and analysis on certain topics. Currently, these are the agents available:
+
+                        {' '.join(agent_descriptions)}
+
+                        You can delegate to more than 1 agent.
+
+                        User: {user_prompt}
+                    """
+                self.first_conversation = False
+            else:
+                prompt = f"{user_prompt}"
+
+            # logging.debug(f"Generating response using the following prompt:\n{prompt}")
+            response = self.execute_function_sequence(self.model, self.functions, prompt, self.chat)
+
+            return response

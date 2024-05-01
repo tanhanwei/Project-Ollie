@@ -4,6 +4,8 @@ import praw
 import json
 import google.generativeai as genai
 from agents.agent_base import AgentBase
+from utils.file import File
+from app_constants import RESPONSE, RESPONSE_STYLE
 
 load_dotenv()
 genai.configure(api_key=os.environ["API_KEY"])
@@ -18,8 +20,9 @@ reddit = praw.Reddit(
     user_agent=f'script by /u/{username}',
     username=username
 )
-output_folder = "output/reddit_agent"
+output_folder = f"output/{__name__.split('.')[-1]}"
 os.makedirs(output_folder, exist_ok=True)
+response_path = f"{output_folder}/{RESPONSE}"
 
 class RedditAgent(AgentBase):
     description = "An agent that can retrieve reddit posts and analyse them. It can be used to research any topics including games, technology, science, etc"
@@ -44,7 +47,7 @@ class RedditAgent(AgentBase):
             Args:
                 subreddits (list[str]): List of subreddit names from which to retrieve posts.
                 mode (str): Mode of operation ('top' or 'search'). Defaults to 'top'.
-                query (str): Keyword query for searching posts. Required if mode is 'search'.
+                query (str): Keyword query for searching posts. Required if mode is 'search'. DO NOT use full sentence. Use keyword(s) only.
                 sort_by (str): Sorting criterion ('relevance', 'hot', 'top', 'new', 'comments'). Applicable only for 'search'.
                 time_filter (str): Time filter for posts ('hour', 'day', 'week', 'month', 'year', 'all'). Defaults to 'all'.
                 limit (int): Maximum number of posts to retrieve.
@@ -116,10 +119,22 @@ class RedditAgent(AgentBase):
 
         post_summaries = [f"Title: {post['title']}, Author: {post['author']}, Comments: {post['comments']}, Score: {post['score']}" 
                           for post in posts]
-        summary_prompt = f"{instruction}\n\n{'; '.join(post_summaries)}"
+        # summary_prompt = f"{instruction}\n\n{'; '.join(post_summaries)}"
+
+        summary_prompt = f"""
+        {instruction}
+
+        {RESPONSE_STYLE}
+
+        Here are the posts:
+
+        {post_summaries}
+        """        
 
         print("REDDIT AGENT: Analyzing posts...")
-        response = self.pro_generate_analysis(summary_prompt, output_folder)
+        analysis = self.pro_generate_analysis(summary_prompt)
+
+        File.write_md(analysis,response_path)
         return f"Review analysis has been completed and is saved in '{output_folder}'"
 
     
@@ -127,15 +142,9 @@ class RedditAgent(AgentBase):
         """Retrieve analysis generated earlier on.
         """
         print("Retrieving Analysis...")
-        with open(f"{output_folder}/response.json", 'r') as file:
-            # Read the file content
-            json_text = file.read()
-            
-            # Parse the JSON data
-            analysis = json.loads(json_text)
+        analysis = File.read_md(response_path)
 
         print(f"Got the analysis:\n\n{analysis}")
-        self.task_completed = True
 
         response = f"Analysis retrieved, here is the analysis:\n{analysis}"
         return response

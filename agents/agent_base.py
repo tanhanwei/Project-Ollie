@@ -12,6 +12,7 @@ class AgentBase(ABC):
     def __init__(self):
         self.model = None
         self.chat = None
+        self.first_conversation = True
         self.set_model() 
 
     @abstractmethod
@@ -28,13 +29,19 @@ class AgentBase(ABC):
         self.chat = self.model.start_chat(enable_automatic_function_calling=True)
 
     def execute_function_sequence(self, model, functions, prompt, chat):
+        self.first_conversation = False
         logging.debug(f"Generating response using the following prompt:\n{prompt}")
         response = chat.send_message(prompt)
         logging.debug(f"CHAT HISTORY:\n{chat.history}")
         logging.debug(f"DEBUG: response: \n\n{response}")
-        return response.text
+        
+        if response.text:
+            return response.text
+        else:
+            return response.result.candidates[0].content.parts[0].text
+
     
-    def pro_generate_analysis(self, summary_prompt, output_folder):
+    def pro_generate_analysis(self, summary_prompt):
         model = genai.GenerativeModel('gemini-1.5-pro-latest')
         response = model.generate_content(summary_prompt)
         print(response)
@@ -56,11 +63,8 @@ class AgentBase(ABC):
 
             if response.text:
                 analysis_text = response.text
-                with open(f"{output_folder}/response.json", 'w') as file:
-                    json.dump(analysis_text, file)
-
-                print(f"Completed analysis and saved the result to {output_folder}/response.json")
-                return f"Analysis generated, and it is available at {output_folder}/response.json"
+ 
+                return analysis_text
             else:
                 print("No useful response was generated. Review the input or model configuration.")
                 return "An error occurred during analysis."
