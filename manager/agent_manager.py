@@ -36,6 +36,7 @@ class AgentManager(AgentBase):
         self.data_store = {}
         self.delegated_agents = []
         self.code_generator_enabled = False
+        os.makedirs(output_folder, exist_ok=True)
 
 
 
@@ -226,7 +227,10 @@ class AgentManager(AgentBase):
             code_generator = self.agents["code_generator_agent"]
             code_generator.set_user_prompt(user_prompt)
             response = code_generator.generate_response(user_prompt)
-            return response
+
+            all_agents_response_md = self.get_md_files("output")
+
+            return response, all_agents_response_md
         else:
             # generate response normally
             self.user_input = user_prompt

@@ -11,7 +11,6 @@ from app_constants import RESPONSE, RESPONSE_STYLE
 
 load_dotenv()
 output_folder = f"output/{__name__.split('.')[-1]}"
-os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 
 class WebSearchAgent(AgentBase):
@@ -28,8 +27,7 @@ class WebSearchAgent(AgentBase):
         self.data_store = {}
         self.functions = self.get_functions()
         super().__init__()
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
-        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
+        os.makedirs(output_folder, exist_ok=True)
 
     def get_functions(self):
         return {

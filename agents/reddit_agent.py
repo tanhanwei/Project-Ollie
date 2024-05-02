@@ -21,7 +21,6 @@ reddit = praw.Reddit(
     username=username
 )
 output_folder = f"output/{__name__.split('.')[-1]}"
-os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 
 class RedditAgent(AgentBase):
@@ -30,6 +29,7 @@ class RedditAgent(AgentBase):
         self.functions = self.get_functions() 
         super().__init__()
         self.data_store = {}
+        os.makedirs(output_folder, exist_ok=True)
 
     def get_functions(self):
         return {

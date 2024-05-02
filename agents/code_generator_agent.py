@@ -8,7 +8,6 @@ from app_constants import RESPONSE
 
 load_dotenv()
 output_folder = f"output/{__name__.split('.')[-1]}"
-os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 
 class CodeGeneratorAgent(AgentBase):
@@ -20,6 +19,7 @@ class CodeGeneratorAgent(AgentBase):
         super().__init__()
         self.code_model = genai.GenerativeModel(model_name='gemini-1.5-pro-latest')
         self.user_long_prompt = ""
+        os.makedirs(output_folder, exist_ok=True)
 
     def get_functions(self):
         return {
@@ -62,7 +62,7 @@ class CodeGeneratorAgent(AgentBase):
         # Remove the backticks and "python" keyword from the code
         code = code.strip("```python").strip("```").strip()
 
-        agent_file = f"{agent_folder}/g_{agent_name}_agent.py"
+        agent_file = f"{agent_folder}/g_{agent_name}.py"
         with open(agent_file, 'w') as file:
             file.write(code)
 
@@ -81,7 +81,7 @@ class CodeGeneratorAgent(AgentBase):
         print("CODE GENERATOR AGENT: Attempting to generate and save code...")
         agent_template = File.read_md("template/agent_template.md")
         code_generation_prompt = f"""
-            Please follow the agent template strictly and generate the full python code based on user input.\n\n
+            Please follow the agent template strictly and generate the full python code with full implementation based on user input.\n\n
 
             # Agent Template\n\n
 

@@ -9,7 +9,6 @@ from app_constants import RESPONSE
 
 load_dotenv()
 output_folder = f"output/{__name__.split('.')[-1]}"
-os.makedirs(output_folder, exist_ok=True)
 response_path = f"{output_folder}/{RESPONSE}"
 
 class {AgentName}Agent(AgentBase):
@@ -19,6 +18,7 @@ class {AgentName}Agent(AgentBase):
         self.data_store = {}
         self.functions = self.get_functions()
         super().__init__()
+        os.makedirs(output_folder, exist_ok=True)
 
     def get_functions(self):
         return {
@@ -58,6 +58,11 @@ class {AgentName}Agent(AgentBase):
         result = {"key": "value"}
         return result
 
+    def summarize(self, instruction: str) -> str:
+        """
+        {if needed, write a function where this agent can summarize relevant data collected from other functions}
+        """
+
     def generate_response(self, prompt: str) -> str:
         """
         Generate a response based on the user's prompt.
@@ -71,7 +76,7 @@ class {AgentName}Agent(AgentBase):
         if self.first_conversation:
             prompt = f"""
                 {Insert details prompt here to specify the agents name, identity, and capabilities}
-                
+
                 Example: You are the {agent name}, you can {capabilities}.
         
                 Based on user input, perform the required tasks.
