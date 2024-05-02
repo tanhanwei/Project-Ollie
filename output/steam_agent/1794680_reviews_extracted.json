@@ -497,12 +497,15 @@
         },
         {
             "review": "This is  a real AAAA game."
+        },
+        {
+            "review": "I will leave my cat Miso here, so that anybody who passes by can pet him with a thumbs up\r\n　　　 　　／＞　　フ\r\n　　　 　　| 　_　 _ l\r\n　 　　 　／` ミ＿xノ\r\n　　 　 /　　　 　 |\r\n　　　 /　 ヽ　　 ﾉ\r\n　 　 │　　|　|　|\r\n　／￣|　　 |　|　|\r\n　| (￣ヽ＿_ヽ_)__)\r\n　＼二つ\r\n"
         }
     ],
     "summary": {
         "review_score_desc": "Overwhelmingly Positive",
-        "total_positive": 225126,
-        "total_negative": 3300,
-        "total_reviews": 228426
+        "total_positive": 225186,
+        "total_negative": 3301,
+        "total_reviews": 228487
     }
 }

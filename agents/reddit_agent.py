@@ -33,9 +33,10 @@ class RedditAgent(AgentBase):
 
     def get_functions(self):
         return {
-        'retrieve_posts': self.retrieve_posts,
-        'analyze_posts': self.analyze_posts,
-        'retrieve_analysis': self.retrieve_analysis
+        # 'retrieve_posts': self.retrieve_posts,
+        # 'analyze_posts': self.analyze_posts,
+        # 'retrieve_analysis': self.retrieve_analysis,
+        'retrieve_and_analyze_posts':self.retrieve_and_analyze_posts
         }
     
     def retrieve_posts(self, subreddits: list[str], mode: str = 'top', query: str = None, sort_by: str = 'relevance',
@@ -68,6 +69,7 @@ class RedditAgent(AgentBase):
                 else:
                     raise ValueError("Invalid mode specified. Use 'top' or 'search'.")
 
+                self.emit_debug_message(f"REDDIT AGENT: Retrieving comments...", "REDDIT AGENT")
                 for post in found_posts:
                     comments = self.retrieve_comments(post.id)
                     total_comments += len(comments)
@@ -132,6 +134,7 @@ class RedditAgent(AgentBase):
         """        
 
         print("REDDIT AGENT: Analyzing posts...")
+        self.emit_debug_message(f"REDDIT AGENT: Analyzing posts...", "REDDIT AGENT")
         analysis = self.pro_generate_analysis(summary_prompt)
 
         File.write_md(analysis,response_path)
@@ -148,6 +151,40 @@ class RedditAgent(AgentBase):
 
         response = f"Analysis retrieved, here is the analysis:\n{analysis}"
         return response
+    
+    def retrieve_and_analyze_posts(self, subreddits: list[str], mode: str = 'top', query: str = None, sort_by: str = 'relevance', time_filter: str = 'all', limit: int = 100, instruction: str = 'Analyze these posts'):
+        """
+            Retrieve posts from specified subreddits based on the given mode ('top' or 'search'). If mode is 'search',
+            use the provided query and sort parameters. Store the results in a global data store. And finally analyze everything.
+
+            Args:
+                subreddits (list[str]): List of subreddit names (no spaces allowed) from which to retrieve posts. NOTE: NO SPACES or special characters for subreddit names.
+                mode (str): Mode of operation ('top' or 'search'). Defaults to 'top'.
+                query (str): Keyword query for searching posts. Required if mode is 'search'. DO NOT use full sentence. Use keyword(s) only.
+                sort_by (str): Sorting criterion ('relevance', 'hot', 'top', 'new', 'comments'). Applicable only for 'search'.
+                time_filter (str): Time filter for posts ('hour', 'day', 'week', 'month', 'year', 'all'). Defaults to 'all'.
+                limit (int): Maximum number of posts to retrieve.
+                instruction (str): Instructions for analysis, e.g., "Summarize these posts:", "Perform sentiment analysis for these posts:", or "Identify emerging topics for these posts:"
+
+            Returns:
+                str: Result message indicating the number of posts and comments found and stored.
+        """
+        subreddit = ""
+        if len(subreddits) == 1:
+            subreddit = subreddits[0]
+        elif len(subreddits) > 1:
+            for sub in subreddits:
+                subreddit = f"{subreddit}, {sub}"
+        else:
+            subreddit = 'no subreddit'
+
+
+        self.emit_debug_message(f"REDDIT AGENT: Ok, checking out {mode} posts on {subreddit} subreddit", "REDDIT AGENT")       
+        status = self.retrieve_posts(subreddits, mode, query, sort_by, time_filter, limit)
+        self.emit_debug_message(f"REDDIT AGENT: {status}", "REDDIT AGENT")
+        status = self.analyze_posts(instruction)
+        self.emit_debug_message(f"REDDIT AGENT: {status}", "REDDIT AGENT")
+
 
     def generate_response(self, prompt):
         prompt = f"""

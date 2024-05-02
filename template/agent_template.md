@@ -19,8 +19,6 @@ class {AgentName}Agent(AgentBase):
         self.data_store = {}
         self.functions = self.get_functions()
         super().__init__()
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
-        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
 
     def get_functions(self):
         return {
@@ -40,6 +38,7 @@ class {AgentName}Agent(AgentBase):
         Returns:
             str: Description of the return value.
         """
+        self.emit_debug_message(f"{AGENT NAME}: {agent describing what it's trying to do}", "{AGENT NAME}")    
         # Function implementation goes here
         result = "Function 1 result"
         return result
@@ -54,6 +53,7 @@ class {AgentName}Agent(AgentBase):
         Returns:
             dict: Description of the return value.
         """
+        self.emit_debug_message(f"{AGENT NAME}: {agent describing what it's trying to do}", "{AGENT NAME}")   
         # Function implementation goes here
         result = {"key": "value"}
         return result
@@ -70,6 +70,10 @@ class {AgentName}Agent(AgentBase):
         """
         if self.first_conversation:
             prompt = f"""
+                {Insert details prompt here to specify the agents name, identity, and capabilities}
+                
+                Example: You are the {agent name}, you can {capabilities}.
+        
                 Based on user input, perform the required tasks.
 
                 User: {prompt}

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 import json
 import logging
+from extensions import socketio
 
 import os
 load_dotenv()
@@ -27,7 +28,16 @@ class AgentBase(ABC):
         functions = self.get_functions()
         self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=functions.values())
         self.chat = self.model.start_chat(enable_automatic_function_calling=True)
-
+    
+    def emit_debug_message(self, emit_message, agent_name, ):
+        # try catch block to prevent the server from crashing if the socketio connection is not established
+        try:
+            socketio.emit('debug', {'message': emit_message, 'agent': agent_name})
+        except Exception as e:
+            print(f"Error emitting debug message: {e}")
+            logging.error(f"Error emitting debug message: {e}")
+            return
+    
     def execute_function_sequence(self, model, functions, prompt, chat):
         self.first_conversation = False
         logging.debug(f"Generating response using the following prompt:\n{prompt}")

@@ -23,8 +23,6 @@ class {AgentName}Agent(AgentBase):
         self.data_store = {}
         self.functions = self.get_functions()
         super().__init__()
-        self.model = genai.GenerativeModel(model_name='gemini-1.0-pro', tools=self.functions.values())
-        self.chat = self.model.start_chat(enable_automatic_function_calling=True)
 
     def get_functions(self):
         return {

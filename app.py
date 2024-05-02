@@ -38,7 +38,7 @@ def get_agents():
 @app.route('/api', methods=['POST'])
 def get_response():
     data = request.get_json(force=True, silent=True, cache=False)
-    socketio.emit('debug', {'message': f"Received Data: {data}"})  # Emit debug info
+    # socketio.emit('debug', {'message': f"Received Data: {data}"})  # Emit debug info
     
     user_input = data.get("input")
     agent_keys = data.get("agent_keys", [])  # Default to empty list if not provided
