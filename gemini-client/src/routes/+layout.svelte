@@ -2,10 +2,12 @@
 	import type { LayoutData } from './$types';
 	import '../app.css';
 	import { allChats, currentChat, isChatSelected } from '$lib/stores/current_chat';
-	import type { ChatModel } from '$lib/models/chat_model';
+	import type { ChatModel, MarkdownModel } from '$lib/models/chat_model';
 	import { onMount } from 'svelte';
 	import { io } from 'socket.io-client';
 	import Markdown from 'svelte-exmarkdown';
+	import { modalStore } from '$lib/stores/modal_markdown';
+	import MarkdownPopup from '$lib/components/MarkdownPopup.svelte';
 
 	let text = '';
 	let allAgents: string[] = [];
@@ -121,7 +123,14 @@
 				console.log('Success:', data);
 
 				let responseData = data['response'];
-				onSend(responseData, false, false);
+
+				let markdown = data['markdown'];
+
+				let currentMessages = markdown ?? [];
+
+				console.log('Markdown:', markdown);
+
+				onSend(responseData, false, false, currentMessages);
 			})
 			.catch((error) => {
 				console.error('Error:', error);
@@ -130,7 +139,12 @@
 		loading = false;
 	}
 
-	async function onSend(newMessage: string, isUserInput: boolean, useAPI: boolean = true) {
+	async function onSend(
+		newMessage: string,
+		isUserInput: boolean,
+		useAPI: boolean = true,
+		markdown: MarkdownModel[] = []
+	) {
 		if (newMessage === '') {
 			return;
 		}
@@ -142,7 +156,8 @@
 			currentMessages.push({
 				agent: '',
 				message: newMessage,
-				isUserInput: isUserInput
+				isUserInput: isUserInput,
+				markdown: markdown
 			});
 
 			$currentChat!.messages = currentMessages;
@@ -175,7 +190,8 @@
 				{
 					agent: '',
 					message: newMessage,
-					isUserInput: true
+					isUserInput: true,
+					markdown: markdown
 				}
 			]
 		};
@@ -350,7 +366,7 @@
 				<div class="divider opacity-40 rounded-md m-0 mx-5"></div>
 				<div class="text-secondary-content font-bold ml-5 mt-5 mb-5 text-[18px]">Active Agents</div>
 
-				<div class="mx-5 flex flex-col h-44 overflow-y-aut">
+				<div class="mx-5 flex flex-col h-72 overflow-y-auto">
 					{#each allAgents as agent}
 						<!-- toggle -->
 						<div class="form-control mb-3 bg-secondary p-2 rounded-xl">
@@ -366,6 +382,37 @@
 							</label>
 						</div>
 					{/each}
+				</div>
+
+				<div class="text-secondary-content font-bold ml-5 mt-5 mb-5 text-[18px]">Markdowns</div>
+
+				<div class="mx-5 flex flex-col h-72 overflow-y-auto">
+					{#if $currentChat}
+						{#if $currentChat.messages[$currentChat.messages.length - 1] != null}
+							<!-- get last message -->
+							{#if $currentChat.messages[$currentChat.messages.length - 1].markdown.length > 0}
+								{#each $currentChat.messages[$currentChat.messages.length - 1].markdown as md}
+									<div class="form-control mb-3 bg-secondary p-2 rounded-xl">
+										<label class="label cursor-pointer">
+											<span class="label-text text-secondary-content">{md.agent}</span>
+											<button
+												class="btn btn-ghost btn-sm"
+												on:click={() => {
+													modalStore.set({
+														showModal: true,
+														content: md.md,
+														title: md.agent
+													});
+												}}
+												>Open
+											</button></label
+										>
+									</div>
+								{/each}
+							{/if}
+						{/if}
+					{/if}
+					<!-- toggle -->
 				</div>
 			</ul>
 		</div>
@@ -396,3 +443,5 @@
 		</div>
 	</div>
 </div>
+
+<MarkdownPopup></MarkdownPopup>
