@@ -62,6 +62,7 @@ class WebSearchAgent(AgentBase):
         Returns:
             str: Status of the search operation.
         """
+        self.emit_debug_message(f"**WEB SEARCH AGENT:** Searching the web with: '{search_query}' with max {num_results} results.", "WEB SEARCH AGENT")
         print(f"WEB SEARCH AGENT: Searching the web with: '{search_query}' with max {num_results} results.")
         params = {
             "q": search_query,
@@ -93,6 +94,7 @@ class WebSearchAgent(AgentBase):
             str: Status of the content extraction.
         """
         print("WEB SEARCH AGENT: Extracting content...")
+        self.emit_debug_message(f"**WEB SEARCH AGENT:** Extracting content...", "WEB SEARCH AGENT")
         # relevant_results = self.data_store.get("relevant_results", [])
         relevant_results = self.data_store.get("search_results", [])
         if not relevant_results:
@@ -122,6 +124,7 @@ class WebSearchAgent(AgentBase):
         self.data_store["extracted_content"] = extracted_content
         # return f"Extracted content from {len(extracted_content)} search results."
         print(f"WEB SEARCH AGENT: Extracted content from {len(extracted_content)} search results.")
+        self.emit_debug_message(f"**WEB SEARCH AGENT:** Extracted web content from {len(extracted_content)} search results.", "WEB SEARCH AGENT")
 
 
     def summarize_content(self) -> str:
@@ -147,6 +150,9 @@ class WebSearchAgent(AgentBase):
         """
 
         print(f"SUMMARY PROMPT:\n\n{summary_prompt}")
+
+        self.emit_debug_message(f"**WEB SEARCH AGENT:** Summarizing web contents...", "WEB SEARCH AGENT")
+
         summary = self.pro_generate_analysis(summary_prompt)
         # summary = json.loads(summary_response)["response"]
 
@@ -162,6 +168,7 @@ class WebSearchAgent(AgentBase):
         self.data_store["summary"] = summary
         File.write_md(summary, response_path)
 
+        self.emit_debug_message(f"**WEB SEARCH AGENT:** Done!", "WEB SEARCH AGENT")
         return f"Generated summary and saved to {response_path}"
 
     def generate_response(self, prompt: str) -> str:

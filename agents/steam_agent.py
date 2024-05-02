@@ -173,21 +173,21 @@ class SteamAgent(AgentBase):
         """
         clarified_game_name = self.clarify_game_title(game_name)
         
-        self.emit_debug_message(f"STEAM AGENT: Got it, retrieving reviews for {clarified_game_name}...", "STEAM AGENT")
+        self.emit_debug_message(f"**STEAM AGENT:** Got it, retrieving reviews for {clarified_game_name}...", "STEAM AGENT")
         print(f"\nSTEAM AGENT: Looking for game reviews for {clarified_game_name} within day range of {day_range}.\n")
         app_id, reviews = self.retrieve_reviews(clarified_game_name, day_range)
         
-        self.emit_debug_message(f"STEAM AGENT: Extracting important parts from the review data...", "STEAM AGENT")
+        self.emit_debug_message(f"**STEAM AGENT:** Extracting important parts from the review data...", "STEAM AGENT")
         extracted_data = self.extract_reviews_data(reviews)
         
         status, extracted_data_path = self.save_data(app_id, reviews, extracted_data)
         
         print(status)
 
-        self.emit_debug_message(f"STEAM AGENT: Analyzing the review data now...", "STEAM AGENT")
+        self.emit_debug_message(f"**STEAM AGENT:** Analyzing the review data now...", "STEAM AGENT")
         response = self.analyze_reviews(instruction, extracted_data_path)
 
-        self.emit_debug_message(f"STEAM AGENT: Done! Analysis saved in {response_path}", "STEAM AGENT")
+        self.emit_debug_message(f"**STEAM AGENT:** Done! Analysis saved in {response_path}", "STEAM AGENT")
 
         return response
 

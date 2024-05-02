@@ -105,7 +105,7 @@ class CodeGeneratorAgent(AgentBase):
             self.can_generate = False
         else:
             print("NOT ALLOWED TO GENERATE AGAIN")
-        return "Done!"
+        return f"Done! And code has been saved to the /agents folder. Reboot to use it."
     
     def set_generate_permission(self):
         self.can_generate = True
@@ -142,7 +142,7 @@ class CodeGeneratorAgent(AgentBase):
 
                 YOU ONLY NEED TO GENERATE ONCE.
 
-                If the user is asking anything about the code that you have generated, use retrieve_code function to access the code.
+                If the user is asking anything about the code or asking you how the code works, use retrieve_code function to access the code.
 
                 User: {user_prompt}
             """

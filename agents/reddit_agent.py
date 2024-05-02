@@ -69,7 +69,7 @@ class RedditAgent(AgentBase):
                 else:
                     raise ValueError("Invalid mode specified. Use 'top' or 'search'.")
 
-                self.emit_debug_message(f"REDDIT AGENT: Retrieving comments...", "REDDIT AGENT")
+                self.emit_debug_message(f"**REDDIT AGENT:** Retrieving comments...", "REDDIT AGENT")
                 for post in found_posts:
                     comments = self.retrieve_comments(post.id)
                     total_comments += len(comments)
@@ -134,7 +134,7 @@ class RedditAgent(AgentBase):
         """        
 
         print("REDDIT AGENT: Analyzing posts...")
-        self.emit_debug_message(f"REDDIT AGENT: Analyzing posts...", "REDDIT AGENT")
+        self.emit_debug_message(f"**REDDIT AGENT:** Analyzing posts...", "REDDIT AGENT")
         analysis = self.pro_generate_analysis(summary_prompt)
 
         File.write_md(analysis,response_path)
@@ -183,11 +183,11 @@ class RedditAgent(AgentBase):
             subreddit = 'no subreddit'
 
 
-        self.emit_debug_message(f"REDDIT AGENT: Ok, checking out {mode} posts on {subreddit} subreddit", "REDDIT AGENT")       
+        self.emit_debug_message(f"**REDDIT AGENT:** Ok, checking out {mode} posts on {subreddit} subreddit", "REDDIT AGENT")       
         status = self.retrieve_posts(subreddits, mode, query, sort_by, time_filter, limit)
-        self.emit_debug_message(f"REDDIT AGENT: {status}", "REDDIT AGENT")
+        self.emit_debug_message(f"**REDDIT AGENT:** {status}", "REDDIT AGENT")
         status = self.analyze_posts(instruction)
-        self.emit_debug_message(f"REDDIT AGENT: {status}", "REDDIT AGENT")
+        self.emit_debug_message(f"**REDDIT AGENT:** {status}", "REDDIT AGENT")
 
 
     def generate_response(self, prompt):
