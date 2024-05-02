@@ -41,7 +41,7 @@ def get_agents():
 @app.route('/api', methods=['POST'])
 def get_response():
     data = request.get_json(force=True, silent=True, cache=False)
-    # socketio.emit('debug', {'message': f"Received Data: {data}"})  # Emit debug info
+    socketio.emit('debug', {'message': f"Received Data: {data}"})  # Emit debug info
     
     user_input = data.get("input")
     agent_keys = data.get("agent_keys", [])  # Default to empty list if not provided
@@ -53,7 +53,13 @@ def get_response():
 
     try:
         response, responses_md = agent_manager.generate_response(user_input)
-        return jsonify({'response': response}), 200
+
+        responseData = {
+            'response': response,
+            'markdown': responses_md 
+        }
+
+        return jsonify(responseData), 200
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         return jsonify({'error': str(e)}), 500

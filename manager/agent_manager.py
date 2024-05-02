@@ -262,6 +262,7 @@ class AgentManager(AgentBase):
 
             all_agents_response_md = self.get_md_files("output")
 
-            print(all_agents_response_md)
+            print(all_agents_response_md, "all_agents_response_md")
+            
 
             return response, all_agents_response_md
