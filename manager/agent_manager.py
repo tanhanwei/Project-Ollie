@@ -212,14 +212,14 @@ class AgentManager(AgentBase):
 
 
     def get_md_files(self,root_folder):
-        result = {}
+        result = []
         for root, _, files in os.walk(root_folder):
             for file in files:
                 if file == 'response.md':
                     folder_name = os.path.basename(root)
                     md_file_path = os.path.join(root, file)
                     content = File.read_md(md_file_path)
-                    result[folder_name] = content
+                    result.append({'agent': folder_name, 'md': content})
         return result
     
     def generate_response(self, user_prompt):
