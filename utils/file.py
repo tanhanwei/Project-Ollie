@@ -58,3 +58,14 @@ class File:
         """
         with open(path, 'r', encoding='utf-8') as file:
             return file.read()
+        
+    def remove_spaces(strings):
+        result = [string.replace(" ", "") for string in strings]
+        return result
+
+    # # Example list of strings
+    # strings_list = ["Hello World", "Python Programming", "Open AI"]
+
+    # # Removing spaces
+    # result_list = remove_spaces(strings_list)
+    # print(result_list)

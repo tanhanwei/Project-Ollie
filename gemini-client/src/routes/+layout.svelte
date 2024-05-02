@@ -5,20 +5,26 @@
 	import type { ChatModel } from '$lib/models/chat_model';
 	import { onMount } from 'svelte';
 	import { io } from 'socket.io-client';
+	import Markdown from 'svelte-exmarkdown';
 
 	let text = '';
 	let allAgents: string[] = [];
 
 	let activeAgents: string[] = [];
-
+	let chatContainer: HTMLElement;
 	let loading = false;
 
 	let messages: any[] = [];
+
+	const scrollToBottom = async (node: any) => {
+		node.scroll({ top: node.scrollHeight, behavior: 'smooth' });
+	};
 
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault(); // Prevent the default behavior of Enter key
 			onSend(text, true); // Assuming onSend is a function to handle sending the text
+			scrollToBottom(chatContainer);
 		}
 	}
 
@@ -213,12 +219,11 @@
 
 		<div class="drawer-content flex flex-col justify-between items-center">
 			<!-- svelte-ignore a11y-label-has-associated-control -->
-			<label class="navbar shadow-xl shadow-gray-50 flex flex-row justify-between px-3">
+			<label class="navbar shadow-xl bg-base-200 flex flex-row justify-between px-3">
 				<label for="my-drawer-2" class="btn btn-ghost drawer-button lg:hidden">Menu</label>
 
-				<div class=" font-bold text-[18px]">Google 2024 Gemini Hackathon!</div>
+				<div class=" font-bold text-[18px]">Mini Gemini</div>
 			</label>
-
 			{#if $isChatSelected !== true}
 				<div class="grid grid-cols-2">
 					<div class="bg-secondary opacity-50 rounded-2xl w-[350px] mr-5">
@@ -248,8 +253,22 @@
 			{/if}
 
 			<div>
-				<slot></slot>
+				{#if $isChatSelected === true}
+					<div
+						bind:this={chatContainer}
+						class=" flex flex-col-reverse h-[calc(100vh-200px)] overflow-y-scroll"
+					>
+						<slot></slot>
+					</div>
+				{/if}
 
+				<div class="flex flex-row w-full rounded-t-md items-center justify-center px-3">
+					<div class="flex flex-row justify-start items-center">
+						<div class="bg-base-100 rounded-2xl w-[600px] mb-3">
+							<div class="px-5 py-1 text-left"></div>
+						</div>
+					</div>
+				</div>
 				<div class="flex flex-row w-full rounded-t-md items-center justify-center">
 					{#if loading == false}
 						<form
@@ -269,6 +288,7 @@
 								type="submit"
 								on:click={async () => {
 									await onSend(text, true);
+									scrollToBottom(chatContainer);
 								}}>Send</button
 							>
 						</form>
@@ -351,11 +371,11 @@
 		</div>
 	</div>
 
-	<div class="drawer bg-base-200 lg:drawer-open w-96 flex flex-col">
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<div class="flex flex-row justify-between">
+	<div class="w-[350px] h-screen bg-base-200 overflow-y-auto">
+		<div class="flex flex-row justify-between items-center h-16 relative">
 			<div class="text-secondary-content font-bold mx-4 mt-4 mb-3 text-[18px]">Server Logs</div>
 			<!-- svelte-ignore a11y-no-static-element-interactions -->
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<div
 				class="btn btn-primary btn-sm rounded-xl mx-4 mt-4 mb-3"
 				on:click={() => {
@@ -366,11 +386,11 @@
 			</div>
 		</div>
 
-		<div class="divider opacity-40 rounded-md mx-4 my-0"></div>
-		<div class="p-5 flex flex-col h-96">
+		<div class="divider opacity-40 rounded-md mx-4 my-0 bg-base-200"></div>
+		<div class="p-5 flex flex-col h-[calc(100vh-100px)] overflow-y-scroll">
 			{#each messages as message}
 				<div class="bg-secondary opacity-50 rounded-2xl mb-3">
-					<div class="text-secondary-content p-5">{message}</div>
+					<div class="text-secondary-content p-5"><Markdown md={message}></Markdown></div>
 				</div>
 			{/each}
 		</div>

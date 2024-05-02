@@ -1,6 +1,7 @@
 import random
 from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
+import shutil
 
 import logging
 from manager.agent_manager import AgentManager
@@ -9,6 +10,8 @@ from extensions import socketio
 app = Flask(__name__)
 socketio.init_app(app)
 
+# Clear all agent's responses after reset
+shutil.rmtree('output', ignore_errors=True)
 agent_manager = AgentManager()
 
 # Set up logging
@@ -49,7 +52,7 @@ def get_response():
     agent_manager.set_agents(agent_keys)
 
     try:
-        response = agent_manager.generate_response(user_input)
+        response, responses_md = agent_manager.generate_response(user_input)
         return jsonify({'response': response}), 200
     except Exception as e:
         logging.error(f"An error occurred: {e}")

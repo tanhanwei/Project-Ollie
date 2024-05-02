@@ -169,6 +169,10 @@ class RedditAgent(AgentBase):
             Returns:
                 str: Result message indicating the number of posts and comments found and stored.
         """
+
+        subreddits = File.remove_spaces(subreddits)
+
+        # To show the subreddit text
         subreddit = ""
         if len(subreddits) == 1:
             subreddit = subreddits[0]
