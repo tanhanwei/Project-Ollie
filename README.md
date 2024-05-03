@@ -1,4 +1,4 @@
-<iframe width="560" height="315" src="https://www.youtube.com/embed/y03HaAypTHs?si=7uQstSl5rygmKHMZ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Introducing Project Ollie](https://i9.ytimg.com/vi/y03HaAypTHs/mqdefault.jpg?v=663446f0&sqp=CLDx0bEG&rs=AOn4CLA4Bgg5nPLSqSrORV7tr3QDOGaOOQ)](https://youtu.be/y03HaAypTHs)
 
 ## Inspiration
 I work as a Senior Game Designer at Tencent's Lightspeed Studios, and I had a very helpful game designer intern who was knowledgeable and often performed game-related research and analysis for the team. He was reliable, could process large amount of data, and provided the team with interesting insights and learning points. When the Google AI Hackathon started, his internship ended, which was a loss for the team. So, I thought, why not build an agent system that mimics the way I delegate tasks to the intern?
