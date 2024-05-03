@@ -1,3 +1,5 @@
+<iframe width="560" height="315" src="https://www.youtube.com/embed/y03HaAypTHs?si=7uQstSl5rygmKHMZ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 ## Inspiration
 I work as a Senior Game Designer at Tencent's Lightspeed Studios, and I had a very helpful game designer intern who was knowledgeable and often performed game-related research and analysis for the team. He was reliable, could process large amount of data, and provided the team with interesting insights and learning points. When the Google AI Hackathon started, his internship ended, which was a loss for the team. So, I thought, why not build an agent system that mimics the way I delegate tasks to the intern?
 
