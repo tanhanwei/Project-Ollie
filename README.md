@@ -85,10 +85,9 @@ Ensure you have Python, Node.js, and npm installed on your computer. If not, ins
 First, you need to clone the repository to your local machine. Open your terminal and run:
 
 ```bash
-git clone https://github.com/your-username/your-repository.git
+git clone https://github.com/tanhanwei/Project-Ollie.git
 ```
 
-Replace `https://github.com/your-username/your-repository.git` with the actual URL of your GitHub repository.
 
 ### Set Up the Backend
 
