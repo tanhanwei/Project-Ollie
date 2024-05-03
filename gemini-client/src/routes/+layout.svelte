@@ -8,6 +8,7 @@
 	import Markdown from 'svelte-exmarkdown';
 	import { modalStore } from '$lib/stores/modal_markdown';
 	import MarkdownPopup from '$lib/components/MarkdownPopup.svelte';
+	import imgLogo from '$lib/images/logo512.png';
 
 	let text = '';
 	let allAgents: string[] = [];
@@ -238,7 +239,11 @@
 			<label class="navbar shadow-xl bg-base-200 flex flex-row justify-between px-3">
 				<label for="my-drawer-2" class="btn btn-ghost drawer-button lg:hidden">Menu</label>
 
-				<div class=" font-bold text-[18px]">Mini Gemini</div>
+				<div class="flex items-center">
+					<img src={imgLogo} alt="" class="h-8 w-8 mr-2" /> ⁠
+					<!-- <img src="/static/logo512.png" alt="Project Ollie Logo" class="h-8 w-8 mr-2"> -->
+					<div class="font-bold text-[18px]">Project Ollie</div>
+				  </div>
 			</label>
 			{#if $isChatSelected !== true}
 				<div class="grid grid-cols-2">
